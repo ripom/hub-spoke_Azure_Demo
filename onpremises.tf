@@ -115,8 +115,26 @@ resource "azurerm_windows_virtual_machine" "dnsserver_vm" {
   }
 }
 
+# Execute PowerShell script using Run Command
+resource "azurerm_virtual_machine_run_command" "dns_setup" {
+  count               = local.enablevms ? 1 : 0
+  name                 = "dns-setup-command"
+  location             = azurerm_resource_group.rg_onpremises.location
+  virtual_machine_id   = azurerm_windows_virtual_machine.dnsserver_vm[0].id
+
+  source {
+    script = <<EOT
+      Install-WindowsFeature -Name DNS -IncludeManagementTools
+      Add-DnsServerPrimaryZone -Name "contoso.local" -ZoneFile "contoso.local.dns" -DynamicUpdate Secure
+      Add-DnsServerResourceRecordA -Name "www" -ZoneName "contoso.local" -IPv4Address "${azurerm_windows_virtual_machine.dnsserver_vm[0].private_ip_address}" -TimeToLive 01:00:00
+      Add-DnsServerConditionalForwarderZone -Name "database.windows.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Restart-Service -Name DNS
+    EOT
+  }
+}
+
 resource "azurerm_public_ip" "azurebastion_ip" {
-  count               = local.enableresource ? 1 : 0
+  count               = local.enablevms ? 1 : 0
   provider            = azurerm.landingzonecorp
   name                = local.azurebastion_ip_name
   resource_group_name = azurerm_resource_group.rg_onpremises.name
@@ -126,7 +144,7 @@ resource "azurerm_public_ip" "azurebastion_ip" {
 }
 
 resource "azurerm_bastion_host" "azure_bastion" {
-  count                 = local.enableresource ? 1 : 0
+  count                 = local.enablevms ? 1 : 0
   provider              = azurerm.landingzonecorp
   name                  = local.azurebastion_name
   resource_group_name   = azurerm_resource_group.rg_onpremises.name
