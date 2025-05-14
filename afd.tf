@@ -29,7 +29,7 @@ resource "azurerm_cdn_frontdoor_origin" "my-front-door01-origin1" {
   https_port         = 443
   origin_host_header = azurerm_public_ip.app_gateway_public_ip[0].fqdn
   priority           = 1
-  weight             = 20
+  weight             = 50
 }
 
 resource "azurerm_cdn_frontdoor_origin" "my-front-door01-origin2" {
@@ -46,7 +46,7 @@ resource "azurerm_cdn_frontdoor_origin" "my-front-door01-origin2" {
   https_port         = 443
   origin_host_header = azurerm_public_ip.app_gateway_public_ipdr[0].fqdn
   priority           = 1
-  weight             = 80
+  weight             = 50
 }
 
 resource "azurerm_cdn_frontdoor_endpoint" "frontend_endpoint" {
