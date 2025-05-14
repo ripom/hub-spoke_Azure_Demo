@@ -128,6 +128,8 @@ resource "azurerm_virtual_machine_run_command" "dns_setup" {
       Add-DnsServerPrimaryZone -Name "contoso.local" -ZoneFile "contoso.local.dns" -DynamicUpdate Secure
       Add-DnsServerResourceRecordA -Name "www" -ZoneName "contoso.local" -IPv4Address "${azurerm_windows_virtual_machine.dnsserver_vm[0].private_ip_address}" -TimeToLive 01:00:00
       Add-DnsServerConditionalForwarderZone -Name "database.windows.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      New-NetFirewallRule -DisplayName "Allow DNS Inbound" -Direction Inbound -Protocol UDP -LocalPort 53 -Action Allow
+      New-NetFirewallRule -DisplayName "Allow DNS Inbound" -Direction Inbound -Protocol TCP -LocalPort 53 -Action Allow
       Restart-Service -Name DNS
     EOT
   }
@@ -155,6 +157,7 @@ resource "azurerm_bastion_host" "azure_bastion" {
     subnet_id            = azurerm_subnet.azurebastion_subnet.id
     public_ip_address_id = azurerm_public_ip.azurebastion_ip[0].id
   }
+  ip_connect_enabled = true
 }
 
 resource "azurerm_virtual_network_gateway_connection" "vnet_to_vnet_connection" {
