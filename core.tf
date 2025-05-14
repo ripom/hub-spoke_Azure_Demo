@@ -169,6 +169,32 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
   provider = azurerm.connectivity
 }
 
+resource "azurerm_private_dns_resolver_virtual_network_link" "contosolocal" {
+  name                                           = "contosolocal-dns-forward-ruleset-vnet-link"
+  dns_forwarding_ruleset_id = azurerm_private_dns_resolver_dns_forwarding_ruleset.contosolocal.id
+  virtual_network_id                             = azurerm_virtual_network.vnet.id
+}
+
+resource "azurerm_private_dns_resolver_dns_forwarding_ruleset" "contosolocal" {
+  name                                       = "contosolocal"
+  resource_group_name = azurerm_resource_group.rg_dnszones.name
+  location            = azurerm_resource_group.rg_dnszones.location
+  private_dns_resolver_outbound_endpoint_ids = [azurerm_private_dns_resolver_outbound_endpoint.private_dns_resolver_outbound_endpoint.id]
+  provider = azurerm.connectivity
+}
+
+resource "azurerm_private_dns_resolver_forwarding_rule" "contosolocal" {
+  name                      = "contosolocal-rule"
+  dns_forwarding_ruleset_id = azurerm_private_dns_resolver_dns_forwarding_ruleset.contosolocal.id
+  domain_name               = "contoso.local."
+  enabled                   = true
+  target_dns_servers {
+    ip_address = "${azurerm_windows_virtual_machine.dnsserver_vm[0].private_ip_address}"
+    port       = 53
+  }
+  provider = azurerm.connectivity
+}
+
 resource "azurerm_private_dns_resolver" "dns_private_resolver" {
   name                = "dns-private-resolver"
   resource_group_name = azurerm_resource_group.rg_dnszones.name
