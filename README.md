@@ -37,3 +37,24 @@ The script will deploy these resources:
 
  Edit the terraform.tfvar file to add the subscription ID, you can use one Subscription ID or use multiple in case you want deploy the resource in different Subs to simulate also Landing Zone.
  Edit the main.tf file to change the local parameter in cas would you like to customize something like the name or the subnet ip prefixes and so on.    
+
+ 
+ # Prerequisite
+ Before you start to run this script, it's important you register the providers, you have to register at least these two:
+ - Microsoft.Cdn
+ - Microsoft.Sql
+
+https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/resource-providers-and-types
+
+# Deploy
+To start the deploy, you need to run the terraform command but first you need to authenticate against Azure:
+- **az login** --use-device-code --tenant XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+
+You can edit:
+- **main.tf** file if you want customize the deployment changing name or IP prefixex.
+- **terraform.tfvars** file to specify your subscription ID and enable or disable the creation of VMs or PaaS resources
+
+You are ready to deploy:
+- **terraform init**
+- **terraform plan** you need to provide 3 passwords, one for VPN shared key, one for VM admin and one for SQL admin, remember to use complex password using at least an uppercase letter, an lowercase letter, a digit and a special symbol.
+- **terraform apply** you need to provide 3 passwords, one for VPN shared key, one for VM admin and one for SQL admin, remember to use complex password using at least an uppercase letter, an lowercase letter, a digit and a special symbol.
