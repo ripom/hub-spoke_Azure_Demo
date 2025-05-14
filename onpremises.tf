@@ -11,6 +11,8 @@ resource "azurerm_virtual_network" "onpremises_vnet" {
   location            = azurerm_resource_group.rg_onpremises.location
   resource_group_name = azurerm_resource_group.rg_onpremises.name
   address_space       = local.onpremises_vnet_address_space
+  # Define custom DNS servers here
+  dns_servers = ([local.dnsserver_ip])
 }
 
 resource "azurerm_subnet" "dnsserver_subnet" {
