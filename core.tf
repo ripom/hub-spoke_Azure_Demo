@@ -26,13 +26,6 @@ resource "azurerm_subnet" "vpn_gateway" {
   provider             = azurerm.connectivity
 }
 
-resource "azurerm_subnet" "dnsserver" {
-  name                 = local.dnsserver_subnet_name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  resource_group_name  = azurerm_resource_group.rg_shared.name
-  address_prefixes     = local.dnsserver_subnet_prefixes
-  provider             = azurerm.connectivity
-}
 resource "azurerm_subnet" "bastion" {
   name                 = "AzureBastionSubnet"
   virtual_network_name = azurerm_virtual_network.vnet.name
@@ -180,7 +173,8 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dns-zone-to-vnet-link"
   private_dns_zone_name = each.value
   virtual_network_id    = azurerm_virtual_network.vnet.id
   provider = azurerm.connectivity
-  depends_on = [ azurerm_virtual_network.vnet ]
+  depends_on = [ azurerm_virtual_network.vnet,
+  azurerm_private_dns_zone.private_dns_zone ]
 }
 
 resource "azurerm_public_ip" "vpn_gateway_ip" {
