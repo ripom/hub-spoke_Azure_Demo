@@ -53,12 +53,18 @@ resource "azurerm_subnet" "servers_subnetdr" {
   address_prefixes     = local.servers_subnetdr_prefixes
 }
 
-resource "azurerm_subnet" "appgwpl_subnetdr" {
-  provider             = azurerm.landingzonecorp
-  name                 = local.appgwpl_subnetdr_name
-  virtual_network_name = azurerm_virtual_network.spokedr_vnet.name
-  resource_group_name  = azurerm_resource_group.rg_spokedr.name
-  address_prefixes     = local.appgwpl_subnetdr_prefixes
+resource "azurerm_network_security_group" "serverdr_nsg" {
+  provider            = azurerm.landingzonecorp
+  name                = "serverdr-nsg"
+  location            = azurerm_resource_group.rg_spokedr.location
+  resource_group_name = azurerm_resource_group.rg_spokedr.name
+
+}
+
+resource "azurerm_subnet_network_security_group_association" "serverdr_nsg_association" {
+  subnet_id                 = azurerm_subnet.servers_subnetdr.id
+  network_security_group_id = azurerm_network_security_group.serverdr_nsg.id
+  provider                  = azurerm.landingzonecorp
 }
 
 resource "azurerm_subnet_network_security_group_association" "frontend_nsg_associationdr" {
@@ -105,17 +111,6 @@ resource "azurerm_network_security_group" "backend_nsgdr" {
   location            = azurerm_resource_group.rg_spokedr.location
   resource_group_name = azurerm_resource_group.rg_spokedr.name
 
-  # security_rule {
-  #   name                       = "allow-internal"
-  #   priority                   = 200
-  #   direction                  = "Inbound"
-  #   access                     = "Allow"
-  #   protocol                   = "Tcp"
-  #   source_port_range          = "*"
-  #   destination_port_range     = "*"
-  #   source_address_prefix      = "10.20.0.0/16"
-  #   destination_address_prefix = "10.20.0.0/16"
-  # }
 }
 
 resource "azurerm_virtual_network_peering" "shared_to_spokedr" {

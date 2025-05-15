@@ -67,8 +67,6 @@ locals {
   backend_subnet_prefixes        = ["10.10.2.0/24"]
   servers_subnet_name            = "servers"
   servers_subnet_prefixes        = ["10.10.4.0/24"]
-  appgwpl_subnet_name            = "appgwpl"
-  appgwpl_subnet_prefixes        = ["10.10.5.0/24"]
   appgw_subnet                   = ["10.10.3.0/24"]
   spokedr_vnet_name              = "spokedr-vnet"
   spokedr_vnet_address_space     = ["10.20.0.0/16"]
@@ -78,8 +76,6 @@ locals {
   backend_subnetdr_prefixes      = ["10.20.2.0/24"]
   servers_subnetdr_name          = "servers"
   servers_subnetdr_prefixes      = ["10.20.4.0/24"]
-  appgwpl_subnetdr_name          = "appgwpl"
-  appgwpl_subnetdr_prefixes      = ["10.20.5.0/24"]
   appgw_subnetdr                 = ["10.20.3.0/24"]
   onpremises_vnet_name           = "on-premises-vnet"
   onpremises_vnet_address_space  = ["10.200.0.0/16"]
@@ -87,8 +83,6 @@ locals {
   dnsserver_subnet_prefixes      = ["10.200.1.0/24"]
   dnsserver_ip                   = "10.200.1.4"
   azurebastion_subnet_prefixes   = ["10.200.2.0/24"]
-  serversonprem_subnet_name      = "onpremservers"
-  serversonprem_subnet_prefixes  = ["10.200.3.0/24"]
   vpn_gatewayonprem_subnet_prefixes = ["10.200.4.0/24"]
   shared_vnet_name               = "vnet-shared"
   shared_vnet_address_space      = ["10.0.0.0/16"]

@@ -23,20 +23,26 @@ resource "azurerm_subnet" "dnsserver_subnet" {
   address_prefixes     = local.dnsserver_subnet_prefixes
 }
 
+resource "azurerm_network_security_group" "dnsserver_nsg" {
+  provider            = azurerm.landingzonecorp
+  name                = "dnsserver-nsg"
+  location            = azurerm_resource_group.rg_onpremises.location
+  resource_group_name = azurerm_resource_group.rg_onpremises.name
+
+}
+
+resource "azurerm_subnet_network_security_group_association" "dnsserver_nsg_association" {
+  subnet_id                 = azurerm_subnet.dnsserver_subnet.id
+  network_security_group_id = azurerm_network_security_group.dnsserver_nsg.id
+  provider                  = azurerm.landingzonecorp
+}
+
 resource "azurerm_subnet" "azurebastion_subnet" {
   provider             = azurerm.landingzonecorp
   name                 = "AzureBastionSubnet"
   virtual_network_name = azurerm_virtual_network.onpremises_vnet.name
   resource_group_name  = azurerm_resource_group.rg_onpremises.name
   address_prefixes     = local.azurebastion_subnet_prefixes
-}
-
-resource "azurerm_subnet" "serversonprem_subnet" {
-  provider             = azurerm.landingzonecorp
-  name                 = local.serversonprem_subnet_name
-  virtual_network_name = azurerm_virtual_network.onpremises_vnet.name
-  resource_group_name  = azurerm_resource_group.rg_onpremises.name
-  address_prefixes     = local.serversonprem_subnet_prefixes
 }
 
 resource "azurerm_subnet" "vpn_gatewayonprem" {
@@ -52,8 +58,8 @@ resource "azurerm_public_ip" "vpn_gatewayonprem_ip" {
   name                = "${local.vpngatewayonprem}-public-ip"
   location            = azurerm_resource_group.rg_onpremises.location
   resource_group_name = azurerm_resource_group.rg_onpremises.name
-  allocation_method   = "Dynamic" # VPN Gateways typically use dynamically allocated IPs
-  sku                 = "Basic"
+  allocation_method   = "Static" # VPN Gateways typically use dynamically allocated IPs
+  sku                 = "Standard"
 }
 
 resource "azurerm_virtual_network_gateway" "vpn_gatewayonprem" {
@@ -65,7 +71,7 @@ resource "azurerm_virtual_network_gateway" "vpn_gatewayonprem" {
   vpn_type            = "RouteBased"
   active_active       = false
   enable_bgp          = false
-  sku                 = "Basic"
+  sku                 = "VpnGw1"
 
   ip_configuration {
     name                          = "vpngateway-ipconfig"
