@@ -1,5 +1,7 @@
-# hub-spoke_Azure_Demo
+# Hub-Spoke_Azure_Demo
 This repository provides Infrastructure as Code (IaC) scripts to set up a hub-and-spoke demo deployment network infrastructure. It includes a simulated on-premises network, VPN, Azure Firewall, Web Apps, Azure SQL Database, Application Gateway, and Azure Front Door.
+
+![Architecture Diagram](images/architecture-diagram.png)
 
 The script will deploy these resources:
 ## Shared Resource Group:
