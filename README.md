@@ -12,12 +12,13 @@ The script will deploy these resources:
 ## DNS Resource Group:
 - **DNS Private Resolver** connected with the HUB Vnet
 - All **Azure DNS Private DNS Zones** (privatelink)
+- **DNS Forwarder Ruleset** to forward the queries for contoso.local domain to the on-premises DNS Server
 
 ## On-Premises Resource Group:
 - **VNET** (simulate the on-premises network)
 - **Bastion Standard** to connect to the VMs
 - **VPN Gateway** connected using VNET2VNET to the HUB
-- **Windows VM** that can be used for testing or to configure DNS Server and play with DNS resolution
+- **Windows VM** that can be used for testing or to configure DNS Server and play with DNS resolution, this VM has DNS Server role installed, contain a DNS Zone contoso.local with a record www.contoso.local pointing to DNS Server. There is also configured a conditional forward DNS Zone for database.windows.net to forward the queries to the Azure DNS Private Resolver
 
 ## Spoke Resource Group:
 - **VNET**
@@ -52,9 +53,14 @@ To start the deploy, you need to run the terraform command but first you need to
 
 You can edit:
 - **main.tf** file if you want customize the deployment changing name or IP prefixex.
-- **terraform.tfvars** file to specify your subscription ID and enable or disable the creation of VMs or PaaS resources
+- **terraform.tfvars** file to specify your subscription ID and enable or disable the creation of VMs **enablevms = "true"** or PaaS resources **enableresource = "true"**
 
 You are ready to deploy:
 - **terraform init**
 - **terraform plan** you need to provide 3 passwords, one for VPN shared key, one for VM admin and one for SQL admin, remember to use complex password using at least an uppercase letter, an lowercase letter, a digit and a special symbol.
 - **terraform apply** you need to provide 3 passwords, one for VPN shared key, one for VM admin and one for SQL admin, remember to use complex password using at least an uppercase letter, an lowercase letter, a digit and a special symbol.
+
+# Test
+After deployment, you can login into the DNSserver VM (using Bastion) and test the name resolution, you can ping the SQL Database private endpoint (check in the portal). If the ping resolve with private IP (ping will not get ane reply), then it is configured correctly.
+
+You can also login into CoreVM or one VM deployed into Spokes and ping this FQDN **www.contoso.local**, you should expect no reply but FQDN resolved with the DNSserver private IP.
