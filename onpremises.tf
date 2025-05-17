@@ -45,6 +45,81 @@ resource "azurerm_subnet" "azurebastion_subnet" {
   address_prefixes     = local.azurebastion_subnet_prefixes
 }
 
+resource "azurerm_network_security_group" "bastion_nsg" {
+  name                = "bastion-nsg"
+  location            = azurerm_resource_group.rg_onpremises.location
+  resource_group_name = azurerm_resource_group.rg_onpremises.name
+  provider            = azurerm.landingzonecorp
+
+  # Additional Rules from Uploaded Image
+  security_rule {
+    name                       = "AllowSshOutbound"
+    priority                   = 100
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "VirtualNetwork"
+  }
+
+  security_rule {
+    name                       = "AllowRdpOutbound"
+    priority                   = 110
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "3389"
+    source_address_prefix      = "*"
+    destination_address_prefix = "VirtualNetwork"
+  }
+
+  security_rule {
+    name                       = "AllowAzureLoadBalancerInbound"
+    priority                   = 200
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "AzureCloud"
+  }
+
+  security_rule {
+    name                       = "AllowGatewayManager"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "GatewayManager"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "AllowHttpsInBound"
+    priority                   = 200
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "GatewayManager"
+    destination_address_prefix = "*"
+  }
+
+}
+
+resource "azurerm_subnet_network_security_group_association" "bastion_nsg_association" {
+  subnet_id                 = azurerm_subnet.azurebastion_subnet.id
+  network_security_group_id = azurerm_network_security_group.bastion_nsg.id
+  provider                  = azurerm.landingzonecorp
+}
+
 resource "azurerm_subnet" "vpn_gatewayonprem" {
   provider             = azurerm.landingzonecorp
   name                 = "GatewaySubnet"
