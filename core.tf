@@ -26,13 +26,13 @@ resource "azurerm_subnet" "vpn_gateway" {
   provider             = azurerm.connectivity
 }
 
-resource "azurerm_subnet" "bastion" {
-  name                 = "AzureBastionSubnet"
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  resource_group_name  = azurerm_resource_group.rg_shared.name
-  address_prefixes     = local.bastion_subnet_prefixes
-  provider             = azurerm.connectivity
-}
+# resource "azurerm_subnet" "bastion" {
+#   name                 = "AzureBastionSubnet"
+#   virtual_network_name = azurerm_virtual_network.vnet.name
+#   resource_group_name  = azurerm_resource_group.rg_shared.name
+#   address_prefixes     = local.bastion_subnet_prefixes
+#   provider             = azurerm.connectivity
+# }
 
 resource "azurerm_subnet" "firewall" {
   name                 = "AzureFirewallSubnet"
