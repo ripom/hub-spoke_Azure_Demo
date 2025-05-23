@@ -169,3 +169,30 @@ resource "azurerm_network_interface" "avd-host_pool-nic" {
   }
   provider                  = azurerm.landingzoneavd
 }
+
+
+resource "azurerm_virtual_network_peering" "shared_to_avd" {
+  name                         = "shared-to-avd-peering"
+  resource_group_name          = azurerm_resource_group.rg_shared.name
+  virtual_network_name         = azurerm_virtual_network.vnet.name
+  remote_virtual_network_id    = azurerm_virtual_network.avd-vnet.id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  allow_gateway_transit        = true
+  use_remote_gateways          = false
+  provider                     = azurerm.connectivity
+  depends_on                   = [azurerm_virtual_network_gateway.vpn_gateway]
+}
+
+resource "azurerm_virtual_network_peering" "avd_to_shared" {
+  name                         = "avd-to-shared-peering"
+  resource_group_name          = azurerm_resource_group.avd-rg.name
+  virtual_network_name         = azurerm_virtual_network.avd-vnet.name
+  remote_virtual_network_id    = azurerm_virtual_network.vnet.id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  allow_gateway_transit        = false
+  use_remote_gateways          = true
+  provider                     = azurerm.landingzoneavd
+  depends_on                   = [azurerm_virtual_network_gateway.vpn_gateway]
+}
