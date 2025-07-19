@@ -14,7 +14,7 @@ locals {
   rgspokedr                                       = "rg-spoke-dr"
   spokedr_location                                = "northeurope"
   rg_onpremises                                   = "rg-onpremises"
-  rg_shared_name                                  = "rg-shared"
+  rg_shared_name                                  = "rg-core" #"rg-shared"
   rg_dnszones_name                                = "rg-dnszones"
 
   # Virtual Machine

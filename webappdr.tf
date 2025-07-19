@@ -1,6 +1,3 @@
-
-
-
 resource "azurerm_role_assignment" "web_app_storage_accessdr" {
   count                 = local.enableresource ? 1 : 0 # Resource is created if the variable is true
   scope                 = azurerm_storage_account.storage_account[0].id
@@ -18,6 +15,10 @@ resource "azurerm_service_plan" "app_service_plandr" {
   resource_group_name   = azurerm_resource_group.rg_spokedr.name
   sku_name              = "B1"
   os_type               = "Windows"
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_windows_web_app" "web_appdr" {
@@ -43,6 +44,10 @@ resource "azurerm_windows_web_app" "web_appdr" {
     DB_PASSWORD                         = azurerm_mssql_server.sql_serverdr[0].administrator_login_password
     WEBSITE_RUN_FROM_PACKAGE            = azurerm_storage_blob.zip_file[0].url # Run directly from the blob
     WEBSITES_ENABLE_APP_SERVICE_STORAGE = "true"
+  }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
   }
 }
 

@@ -6,6 +6,10 @@ resource "azurerm_storage_account" "storage_account" {
   resource_group_name   = azurerm_resource_group.rg_spoke.name
   account_tier          = "Standard"
   account_replication_type = "LRS"
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_storage_container" "storage_container" {
@@ -43,6 +47,10 @@ resource "azurerm_service_plan" "app_service_plan" {
   resource_group_name   = azurerm_resource_group.rg_spoke.name
   sku_name              = "B1"
   os_type               = "Windows"
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_windows_web_app" "web_app" {
@@ -68,6 +76,10 @@ resource "azurerm_windows_web_app" "web_app" {
     DB_PASSWORD                         = azurerm_mssql_server.sql_server[0].administrator_login_password
     WEBSITE_RUN_FROM_PACKAGE            = azurerm_storage_blob.zip_file[0].url # Run directly from the blob
     WEBSITES_ENABLE_APP_SERVICE_STORAGE = "true"
+  }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
   }
 }
 

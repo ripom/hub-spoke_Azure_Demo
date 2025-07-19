@@ -4,6 +4,10 @@ resource "azurerm_cdn_frontdoor_profile" "lzdemo01" {
   name                = "${local.cdn_frontdoor_profile_name}-${local.random_suffix}"
   resource_group_name = azurerm_resource_group.rg_shared.name
   sku_name            = "Standard_AzureFrontDoor"
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_cdn_frontdoor_origin_group" "my-front-door01-origin_group" {
