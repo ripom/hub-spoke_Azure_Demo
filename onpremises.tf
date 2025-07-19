@@ -3,6 +3,10 @@ resource "azurerm_resource_group" "rg_onpremises" {
   provider = azurerm.landingzonecorp
   name     = local.rg_onpremises
   location = local.corelocation
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_virtual_network" "onpremises_vnet" {
@@ -13,6 +17,10 @@ resource "azurerm_virtual_network" "onpremises_vnet" {
   address_space       = local.onpremises_vnet_address_space
   # Define custom DNS servers here
   dns_servers = ([local.dnsserver_ip])
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_subnet" "dnsserver_subnet" {
@@ -28,6 +36,10 @@ resource "azurerm_network_security_group" "dnsserver_nsg" {
   name                = "dnsserver-nsg"
   location            = azurerm_resource_group.rg_onpremises.location
   resource_group_name = azurerm_resource_group.rg_onpremises.name
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 
 }
 
@@ -45,6 +57,84 @@ resource "azurerm_subnet" "azurebastion_subnet" {
   address_prefixes     = local.azurebastion_subnet_prefixes
 }
 
+resource "azurerm_network_security_group" "bastion_nsg" {
+  name                = "bastion-nsg"
+  location            = azurerm_resource_group.rg_onpremises.location
+  resource_group_name = azurerm_resource_group.rg_onpremises.name
+  provider            = azurerm.landingzonecorp
+
+  # Additional Rules from Uploaded Image
+  security_rule {
+    name                       = "AllowSshOutbound"
+    priority                   = 100
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "VirtualNetwork"
+  }
+
+  security_rule {
+    name                       = "AllowRdpOutbound"
+    priority                   = 110
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "3389"
+    source_address_prefix      = "*"
+    destination_address_prefix = "VirtualNetwork"
+  }
+
+  security_rule {
+    name                       = "AllowAzureLoadBalancerInbound"
+    priority                   = 200
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "AzureCloud"
+  }
+
+  security_rule {
+    name                       = "AllowGatewayManager"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "GatewayManager"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "AllowHttpsInBound"
+    priority                   = 200
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "GatewayManager"
+    destination_address_prefix = "*"
+  }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "bastion_nsg_association" {
+  subnet_id                 = azurerm_subnet.azurebastion_subnet.id
+  network_security_group_id = azurerm_network_security_group.bastion_nsg.id
+  provider                  = azurerm.landingzonecorp
+}
+
 resource "azurerm_subnet" "vpn_gatewayonprem" {
   provider             = azurerm.landingzonecorp
   name                 = "GatewaySubnet"
@@ -60,6 +150,10 @@ resource "azurerm_public_ip" "vpn_gatewayonprem_ip" {
   resource_group_name = azurerm_resource_group.rg_onpremises.name
   allocation_method   = "Static" # VPN Gateways typically use dynamically allocated IPs
   sku                 = "Standard"
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_virtual_network_gateway" "vpn_gatewayonprem" {
@@ -79,6 +173,10 @@ resource "azurerm_virtual_network_gateway" "vpn_gatewayonprem" {
     private_ip_address_allocation = "Dynamic"
     subnet_id                     = azurerm_subnet.vpn_gatewayonprem.id
   }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 
@@ -94,6 +192,10 @@ resource "azurerm_network_interface" "dnsserver_nic" {
     name                          = "${local.dnsserver_vm_name}-ipconfig"
     subnet_id                     = azurerm_subnet.dnsserver_subnet.id
     private_ip_address_allocation = "Dynamic"
+  }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
   }
 }
 
@@ -121,6 +223,10 @@ resource "azurerm_windows_virtual_machine" "dnsserver_vm" {
     sku       = "2019-Datacenter"
     version   = "latest"
   }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 # Execute PowerShell script using Run Command
@@ -141,6 +247,10 @@ resource "azurerm_virtual_machine_run_command" "dns_setup" {
       Restart-Service -Name DNS
     EOT
   }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_public_ip" "azurebastion_ip" {
@@ -151,6 +261,10 @@ resource "azurerm_public_ip" "azurebastion_ip" {
   location            = azurerm_resource_group.rg_onpremises.location
   sku                 = "Standard"
   allocation_method   = "Static"
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_bastion_host" "azure_bastion" {
@@ -166,6 +280,10 @@ resource "azurerm_bastion_host" "azure_bastion" {
     public_ip_address_id = azurerm_public_ip.azurebastion_ip[0].id
   }
   ip_connect_enabled = true
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_virtual_network_gateway_connection" "vnet_to_vnet_connection" {
@@ -178,6 +296,10 @@ resource "azurerm_virtual_network_gateway_connection" "vnet_to_vnet_connection" 
   peer_virtual_network_gateway_id = azurerm_virtual_network_gateway.vpn_gateway.id # Peer gateway
   enable_bgp          = false
   shared_key          = local.vpnsharedkey # Pre-shared key for VNet connection
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_virtual_network_gateway_connection" "vnet_to_vnet_connection2" {
@@ -190,4 +312,8 @@ resource "azurerm_virtual_network_gateway_connection" "vnet_to_vnet_connection2"
   peer_virtual_network_gateway_id = azurerm_virtual_network_gateway.vpn_gatewayonprem.id # Peer gateway
   enable_bgp          = false
   shared_key          = local.vpnsharedkey # Pre-shared key for VNet connection
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }

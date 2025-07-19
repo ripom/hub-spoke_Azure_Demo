@@ -2,12 +2,20 @@ resource "azurerm_resource_group" "rg_shared" {
   name     = local.rg_shared_name
   location = local.corelocation
   provider = azurerm.connectivity
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_resource_group" "rg_dnszones" {
   name     = local.rg_dnszones_name
   location = local.corelocation
   provider = azurerm.connectivity
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_virtual_network" "vnet" {
@@ -16,6 +24,10 @@ resource "azurerm_virtual_network" "vnet" {
   resource_group_name = azurerm_resource_group.rg_shared.name
   address_space       = local.shared_vnet_address_space
   provider            = azurerm.connectivity
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_subnet" "vpn_gateway" {
@@ -23,14 +35,6 @@ resource "azurerm_subnet" "vpn_gateway" {
   virtual_network_name = azurerm_virtual_network.vnet.name
   resource_group_name  = azurerm_resource_group.rg_shared.name
   address_prefixes     = local.vpn_gateway_subnet_prefixes
-  provider             = azurerm.connectivity
-}
-
-resource "azurerm_subnet" "bastion" {
-  name                 = "AzureBastionSubnet"
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  resource_group_name  = azurerm_resource_group.rg_shared.name
-  address_prefixes     = local.bastion_subnet_prefixes
   provider             = azurerm.connectivity
 }
 
@@ -63,7 +67,10 @@ resource "azurerm_network_security_group" "dns_nsg" {
   name                = "dns-nsg"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
-
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_subnet_network_security_group_association" "dnsoutbound_nsg_association" {
@@ -107,7 +114,10 @@ resource "azurerm_network_security_group" "servers_nsg" {
   name                = "servers-nsg"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
-
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_subnet_network_security_group_association" "servers_nsg_association" {
@@ -142,6 +152,10 @@ resource "azurerm_private_dns_zone" "private_dns_zone" {
   name                = each.value
   resource_group_name = azurerm_resource_group.rg_dnszones.name
   provider = azurerm.connectivity
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 # Create a Private DNS to VNET link
@@ -175,6 +189,10 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dns-zone-to-vnet-link"
   provider = azurerm.connectivity
   depends_on = [ azurerm_virtual_network.vnet,
   azurerm_private_dns_zone.private_dns_zone ]
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_public_ip" "vpn_gateway_ip" {
@@ -184,6 +202,10 @@ resource "azurerm_public_ip" "vpn_gateway_ip" {
   allocation_method   = "Static" # VPN Gateways typically use dynamically allocated IPs
   sku                 = "Standard"
   provider = azurerm.connectivity
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_virtual_network_gateway" "vpn_gateway" {
@@ -209,6 +231,10 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
   }
   depends_on = [ azurerm_public_ip.vpn_gateway_ip,
   azurerm_subnet.vpn_gateway ]
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_private_dns_resolver_virtual_network_link" "contosolocal" {
@@ -226,6 +252,10 @@ resource "azurerm_private_dns_resolver_dns_forwarding_ruleset" "contosolocal" {
   private_dns_resolver_outbound_endpoint_ids = [azurerm_private_dns_resolver_outbound_endpoint.private_dns_resolver_outbound_endpoint.id]
   provider = azurerm.connectivity
   depends_on = [azurerm_private_dns_resolver_outbound_endpoint.private_dns_resolver_outbound_endpoint]
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_private_dns_resolver_forwarding_rule" "contosolocal" {
@@ -249,6 +279,10 @@ resource "azurerm_private_dns_resolver" "dns_private_resolver" {
   virtual_network_id  = azurerm_virtual_network.vnet.id
   provider = azurerm.connectivity
   depends_on = [ azurerm_virtual_network.vnet ]
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_private_dns_resolver_inbound_endpoint" "private_dns_resolver_inbound_endpoint" {
@@ -263,6 +297,10 @@ resource "azurerm_private_dns_resolver_inbound_endpoint" "private_dns_resolver_i
   provider = azurerm.connectivity
   depends_on = [ azurerm_subnet.dns_private_resolver_inbound,
   azurerm_private_dns_resolver.dns_private_resolver ]
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_private_dns_resolver_outbound_endpoint" "private_dns_resolver_outbound_endpoint" {
@@ -273,6 +311,10 @@ resource "azurerm_private_dns_resolver_outbound_endpoint" "private_dns_resolver_
   provider = azurerm.connectivity
   depends_on = [ azurerm_private_dns_resolver.dns_private_resolver,
   azurerm_subnet.dns_private_resolver_outbound ]
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_public_ip" "firewall_public_ip" {
@@ -283,6 +325,10 @@ resource "azurerm_public_ip" "firewall_public_ip" {
   allocation_method   = "Static"
   sku                 = "Standard"
   provider            = azurerm.connectivity
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_firewall" "firewall" {
@@ -299,6 +345,10 @@ resource "azurerm_firewall" "firewall" {
     subnet_id            = azurerm_subnet.firewall.id
     public_ip_address_id = azurerm_public_ip.firewall_public_ip[0].id
   }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_firewall_policy" "firewall_policy" {
@@ -307,6 +357,10 @@ resource "azurerm_firewall_policy" "firewall_policy" {
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
   provider            = azurerm.connectivity
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 
@@ -323,6 +377,10 @@ resource "azurerm_network_interface" "corevm_nic" {
     name                          = "${local.corevmname}-ipconfig"
     subnet_id                     = azurerm_subnet.general_servers.id
     private_ip_address_allocation = "Dynamic"
+  }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
   }
 }
 
@@ -351,6 +409,7 @@ resource "azurerm_windows_virtual_machine" "corevm" {
   }
 
   tags = {
-    environment = "shared"
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
   }
 }

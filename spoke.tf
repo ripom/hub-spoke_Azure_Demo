@@ -3,6 +3,10 @@ resource "azurerm_resource_group" "rg_spoke" {
   provider = azurerm.landingzonecorp
   name     = local.rgspoke
   location = local.corelocation
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_virtual_network" "spoke_vnet" {
@@ -18,6 +22,10 @@ resource "azurerm_virtual_network" "spoke_vnet" {
     ? [azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address]
     : []
   )
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_subnet" "frontend_subnet" {
@@ -58,7 +66,10 @@ resource "azurerm_network_security_group" "server_nsg" {
   name                = "server-nsg"
   location            = azurerm_resource_group.rg_spoke.location
   resource_group_name = azurerm_resource_group.rg_spoke.name
-
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_subnet_network_security_group_association" "server_nsg_association" {
@@ -103,6 +114,10 @@ resource "azurerm_network_security_group" "frontend_nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_network_security_group" "backend_nsg" {
@@ -110,7 +125,10 @@ resource "azurerm_network_security_group" "backend_nsg" {
   name                = "backend-nsg"
   location            = azurerm_resource_group.rg_spoke.location
   resource_group_name = azurerm_resource_group.rg_spoke.name
-
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_virtual_network_peering" "shared_to_spoke" {
@@ -150,6 +168,10 @@ resource "azurerm_mssql_server" "sql_server" {
   administrator_login_password  = local.administrator_sql_login_password
   minimum_tls_version           = "1.2"
   public_network_access_enabled = "false"
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 
@@ -163,6 +185,10 @@ resource "azurerm_mssql_database" "sql_database" {
   max_size_gb  = 2
   sku_name     = "S0"
   enclave_type = "VBS"
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_private_endpoint" "sql_private_endpoint" {
@@ -185,6 +211,10 @@ resource "azurerm_private_endpoint" "sql_private_endpoint" {
     private_connection_resource_id = azurerm_mssql_server.sql_server[0].id
     subresource_names              = ["sqlServer"]
   }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 # Create SpokeVM
@@ -200,6 +230,10 @@ resource "azurerm_network_interface" "spokevm_nic" {
     name                          = "${local.spokevm_name}-ipconfig"
     subnet_id                     = azurerm_subnet.servers_subnet.id
     private_ip_address_allocation = "Dynamic"
+  }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
   }
 }
 
@@ -226,6 +260,10 @@ resource "azurerm_windows_virtual_machine" "spokevm" {
     sku       = "2016-Datacenter"
     version   = "latest"
   }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 
@@ -241,6 +279,10 @@ resource "azurerm_public_ip" "app_gateway_public_ip" {
   sku                 = "Standard"
 
   domain_name_label   = "${local.appgw_pip_domainname}-${local.random_suffix}" # Adds the FQDN to the public IP
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 resource "azurerm_application_gateway" "app_gateway" {
@@ -315,6 +357,10 @@ resource "azurerm_application_gateway" "app_gateway" {
     backend_http_settings_name = "https-settings"
     priority                   = 100 # Assign priority to this rule
   }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
 }
 
 
@@ -346,6 +392,10 @@ resource "azurerm_network_security_group" "app_gateway_nsg" {
     destination_port_range     = "65200-65535" # Required for V2 SKU probes
     source_address_prefix      = "*"
     destination_address_prefix = "*"
+  }
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
   }
 }
 

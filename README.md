@@ -38,6 +38,13 @@ The script will deploy these resources:
 - **Public IP (DR)** attached to the Application Gateway
 - **Test Windows VM (DR)**
 
+## AVD Resource Group:
+- **VNET**
+- **Hostpool**, contains the session hosts.
+- **Session Hosts** Windows 11 VMs ENTRA ID domain joined.
+- **Application Group** contains the application Desktop Session.
+- **Workspace** contains the Application Group.
+
  Edit the terraform.tfvar file to add the subscription ID, you can use one Subscription ID or use multiple in case you want deploy the resource in different Subs to simulate also Landing Zone.
  Edit the main.tf file to change the local parameter in cas would you like to customize something like the name or the subnet ip prefixes and so on.    
 
