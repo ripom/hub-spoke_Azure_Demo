@@ -14,6 +14,7 @@ resource "azurerm_virtual_network" "avd-vnet" {
   resource_group_name = azurerm_resource_group.avd-rg.name
   address_space       = local.avdvnet-address_space
   provider                  = azurerm.landingzoneavd
+  depends_on = [ azurerm_resource_group.avd-rg  ]
   tags = {
     Environment = "Demo"
     EnvName     = "HUB-Spoke Azure Demo"
@@ -25,14 +26,15 @@ resource "azurerm_subnet" "avd-subnet" {
   resource_group_name  = azurerm_resource_group.avd-rg.name
   virtual_network_name = azurerm_virtual_network.avd-vnet.name
   address_prefixes     = local.avd-subnet-address_prefixes
+  depends_on = [ azurerm_virtual_network.avd-vnet ]
   provider                  = azurerm.landingzoneavd
 }
 
 resource "azurerm_network_security_group" "avd_servers_nsg" {
-  provider            = azurerm.landingzonecorp
-  name                = "avs_servers-nsg"
-  location            = azurerm_resource_group.rg_shared.location
-  resource_group_name = azurerm_resource_group.rg_shared.name
+  provider            = azurerm.landingzoneavd
+  name                = "avd_servers-nsg"
+  location            = azurerm_resource_group.avd-rg.location
+  resource_group_name = azurerm_resource_group.avd-rg.name
   tags = {
     Environment = "Demo"
     EnvName     = "HUB-Spoke Azure Demo"
@@ -186,6 +188,7 @@ resource "azurerm_windows_virtual_machine" "session_host" {
   identity {
     type = "SystemAssigned"
   }
+  depends_on = [ azurerm_network_interface.avd-host_pool-nic ]
   provider                  = azurerm.landingzoneavd
   tags = {
     Environment = "Demo"
@@ -203,6 +206,7 @@ resource "azurerm_network_interface" "avd-host_pool-nic" {
     subnet_id                     = azurerm_subnet.avd-subnet.id
     private_ip_address_allocation = "Dynamic"
   }
+  depends_on = [ azurerm_subnet.avd-subnet ]
   provider                  = azurerm.landingzoneavd
   tags = {
     Environment = "Demo"
