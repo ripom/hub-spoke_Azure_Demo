@@ -45,8 +45,8 @@ The script will deploy these resources:
 - **Application Group** contains the application Desktop Session.
 - **Workspace** contains the Application Group.
 
- Edit the terraform.tfvar file to add the subscription ID, you can use one Subscription ID or use multiple in case you want deploy the resource in different Subs to simulate also Landing Zone.
- Edit the main.tf file to change the local parameter in cas would you like to customize something like the name or the subnet ip prefixes and so on.    
+ Edit the terraform.tfvars file to add the subscription ID, you can use one Subscription ID or use multiple in case you want deploy the resource in different Subs to simulate also Landing Zone.
+ Edit the main.tf file to change the local parameter in case you would like to customize something like the name or the subnet ip prefixes and so on.    
 
  
  # Prerequisite
@@ -61,8 +61,8 @@ To start the deploy, you need to run the terraform command but first you need to
 - **az login** --use-device-code --tenant XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
 
 You can edit:
-- **main.tf** file if you want customize the deployment changing name or IP prefixex.
-- **terraform.tfvars** file to specify your subscription ID and enable or disable the creation of VMs **enablevms = "true"** or PaaS resources **enableresource = "true"**
+- **main.tf** file if you want customize the deployment changing name or IP prefixes.
+- **terraform.tfvars** file to specify your subscription ID and enable or disable the creation of VMs **enablevms = true** or PaaS resources **enableresource = true**
 
 You are ready to deploy:
 - **terraform init**
@@ -70,6 +70,6 @@ You are ready to deploy:
 - **terraform apply** you need to provide 3 passwords, one for VPN shared key, one for VM admin and one for SQL admin, remember to use complex password using at least an uppercase letter, an lowercase letter, a digit and a special symbol.
 
 # Test
-After deployment, you can login into the DNSserver VM (using Bastion) and test the name resolution, you can ping the SQL Database private endpoint (check in the portal). If the ping resolve with private IP (ping will not get ane reply), then it is configured correctly.
+After deployment, you can login into the DNSserver VM (using Bastion) and test the name resolution, you can ping the SQL Database private endpoint (check in the portal). If the ping resolve with private IP (ping will not get any reply), then it is configured correctly.
 
 You can also login into CoreVM or one VM deployed into Spokes and ping this FQDN **www.contoso.local**, you should expect no reply but FQDN resolved with the DNSserver private IP.
