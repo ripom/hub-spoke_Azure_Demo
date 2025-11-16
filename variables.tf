@@ -43,8 +43,21 @@ variable "vm_admin_password" {
   description = "This is the VM admin password."
   
 }
+
 variable "administrator_sql_login_password" {
   type        = string
   description = "This is the SQL Admin password."
   
+}
+
+variable "avdenabled" {
+  type        = bool
+  description = "Enable or disable the deployment of AVD resources."
+  default     = true
+}
+
+variable "onpremises" {
+  type        = bool
+  description = "Enable or disable the deployment of on-premises resources and VPN gateway."
+  default     = true
 }

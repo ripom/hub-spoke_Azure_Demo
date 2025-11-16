@@ -94,7 +94,7 @@ resource "azurerm_subnet" "app_gateway_subnet" {
   name                 = "ApplicationGatewaySubnet" # Fixed name required by Azure
   virtual_network_name = azurerm_virtual_network.spoke_vnet.name
   resource_group_name  = azurerm_resource_group.rg_spoke.name
-  address_prefixes     = local.appgw_subnet
+  address_prefixes     = local.appgw_subnet_prefixes
 }
 
 resource "azurerm_network_security_group" "frontend_nsg" {
@@ -138,10 +138,9 @@ resource "azurerm_virtual_network_peering" "shared_to_spoke" {
   remote_virtual_network_id    = azurerm_virtual_network.spoke_vnet.id
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
-  allow_gateway_transit        = true
+  allow_gateway_transit        = var.onpremises ? true : false
   use_remote_gateways          = false
   provider                     = azurerm.connectivity
-  depends_on                   = [azurerm_virtual_network_gateway.vpn_gateway]
 }
 
 resource "azurerm_virtual_network_peering" "spoke_to_shared" {
@@ -152,13 +151,14 @@ resource "azurerm_virtual_network_peering" "spoke_to_shared" {
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
   allow_gateway_transit        = false
-  use_remote_gateways          = true
+  use_remote_gateways          = var.onpremises ? true : false
   provider                     = azurerm.landingzonecorp
-  depends_on                   = [azurerm_virtual_network_gateway.vpn_gateway]
+  
+  depends_on = [azurerm_virtual_network_gateway.vpn_gateway]
 }
 
 resource "azurerm_mssql_server" "sql_server" {
-  count                 = local.enableresource ? 1 : 0 # Resource is created if the variable is true
+  count                         = local.enableresource ? 1 : 0 # Resource is created if the variable is true
   provider                      = azurerm.landingzonecorp
   name                          = "${local.sqlserver_name}-${local.random_suffix}"
   resource_group_name           = azurerm_resource_group.rg_spoke.name
@@ -168,9 +168,18 @@ resource "azurerm_mssql_server" "sql_server" {
   administrator_login_password  = local.administrator_sql_login_password
   minimum_tls_version           = "1.2"
   public_network_access_enabled = "false"
+  
+  azuread_administrator {
+    login_username              = "AzureAD Admin"
+    object_id                   = data.azurerm_client_config.current.object_id
+    tenant_id                   = data.azurerm_client_config.current.tenant_id
+    azuread_authentication_only = false
+  }
+  
   tags = {
     Environment = "Demo"
     EnvName     = "HUB-Spoke Azure Demo"
+    SecurityControl    = "Ignore"
   }
 }
 
@@ -188,6 +197,7 @@ resource "azurerm_mssql_database" "sql_database" {
   tags = {
     Environment = "Demo"
     EnvName     = "HUB-Spoke Azure Demo"
+    SecurityControl    = "Ignore"
   }
 }
 

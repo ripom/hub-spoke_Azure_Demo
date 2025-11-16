@@ -57,5 +57,18 @@ resource "azurerm_app_service_virtual_network_swift_connection" "web_appdr" {
   subnet_id             = azurerm_subnet.frontend_subnetdr.id
   provider              = azurerm.landingzonecorp
 
-    depends_on = [ azurerm_windows_web_app.web_appdr ]
+  depends_on = [azurerm_windows_web_app.web_appdr]
 }
+
+# # resource "azurerm_role_assignment" "web_appdr_blob_reader" {
+# #   count                = local.enableresource ? 1 : 0
+# #   scope                = azurerm_storage_account.storage_account[0].id # or use container ID for tighter scope
+# #   role_definition_name = "Storage Blob Data Reader"
+# #   principal_id         = azurerm_windows_web_app.web_appdr[0].identity[0].principal_id
+
+# #   depends_on = [
+# #     azurerm_windows_web_app.web_appdr,
+# #     azurerm_storage_account.storage_account
+# #   ]
+# # }
+
