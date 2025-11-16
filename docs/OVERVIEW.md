@@ -16,11 +16,12 @@ This Terraform configuration deploys a production-ready hub-and-spoke topology a
 The central connectivity hub that provides shared services and network transit:
 
 - **Virtual Network (Hub)** - Central connectivity point (10.0.0.0/16)
-- **Azure Firewall** - Network security and traffic inspection
-- **VPN Gateway** - Hybrid connectivity to on-premises environments
-- **DNS Private Resolver** - Hybrid DNS resolution with inbound and outbound endpoints
-- **Windows VM** - Management and testing purposes
-- **Azure Bastion (Standard)** - Secure VM access without public IPs
+- **DNS Private Resolver** - Hybrid DNS resolution with inbound and outbound endpoints (always deployed)
+- **Azure Firewall** (Optional - `enableresource=true`) - Network security and traffic inspection
+- **Azure Front Door** (Optional - `enableresource=true`) - Global load balancer for traffic management across regions
+- **VPN Gateway** (Optional - `onpremises=true`) - Hybrid connectivity to on-premises environments
+- **Windows VM** (Optional - `enablevms=true`) - Management and testing purposes
+- **Azure Bastion (Standard)** (Optional - `enablevms=true`) - Secure VM access without public IPs
 
 ### DNS Resource Group (Management Subscription)
 Centralized DNS management for the entire architecture:
@@ -35,7 +36,7 @@ Centralized DNS management for the entire architecture:
   - `privatelink.azurewebsites.net`
 - **DNS Forwarding Ruleset** - Conditional forwarding to on-premises DNS servers
 
-### On-Premises Resource Group (Optional)
+### On-Premises Resource Group (Optional - `onpremises=true`)
 Simulates an on-premises datacenter environment:
 
 - **Virtual Network** - Simulates on-premises network (10.200.0.0/16)
@@ -47,33 +48,25 @@ Simulates an on-premises datacenter environment:
 Primary application workload environment:
 
 - **Virtual Network** - Workload isolation (10.10.0.0/16)
-- **App Service** - Web application hosting
-- **Azure SQL Database** - Backend database with SQL and Entra ID authentication
-- **Private Endpoints** - Secure connectivity for SQL and Storage
-- **Application Gateway** - Regional load balancer with WAF
-- **Storage Account** - Application data storage
-- **Windows VM** - Testing and management
+- **App Service** (Optional - `enableresource=true`) - Web application hosting
+- **Azure SQL Database** (Optional - `enableresource=true`) - Backend database with SQL and Entra ID authentication
+- **Private Endpoints** (Optional - `enableresource=true`) - Secure connectivity for SQL and Storage
+- **Application Gateway** (Optional - `enableresource=true`) - Regional load balancer with WAF
+- **Storage Account** (Optional - `enableresource=true`) - Application data storage
+- **Windows VM** (Optional - `enablevms=true`) - Testing and management
 
 ### Spoke DR Resource Group - Disaster Recovery (Landing Zone Corp Subscription)
 Secondary region for business continuity:
 
 - **Virtual Network (DR Region)** - Secondary region deployment (10.20.0.0/16)
-- **App Service (DR)** - Failover web application
-- **Azure SQL Database (DR)** - Geo-replicated backend database
-- **Private Endpoints (DR)** - Secure connectivity in DR region
-- **Application Gateway (DR)** - Regional load balancer in DR region
-- **Storage Account (DR)** - Replicated storage
-- **Windows VM (DR)** - Testing and management in DR region
+- **App Service (DR)** (Optional - `enableresource=true`) - Failover web application
+- **Azure SQL Database (DR)** (Optional - `enableresource=true`) - Geo-replicated backend database
+- **Private Endpoints (DR)** (Optional - `enableresource=true`) - Secure connectivity in DR region
+- **Application Gateway (DR)** (Optional - `enableresource=true`) - Regional load balancer in DR region
+- **Storage Account (DR)** (Optional - `enableresource=true`) - Replicated storage
+- **Windows VM (DR)** (Optional - `enablevms=true`) - Testing and management in DR region
 
-### Azure Front Door (Landing Zone Corp Subscription)
-Global traffic management:
-
-- **Front Door Profile** - Global load balancer
-- **Origin Groups** - Primary and DR backends
-- **Endpoints** - Public-facing HTTPS endpoints
-- **Routes** - Traffic routing rules
-
-### AVD Resource Group (Optional - AVD Subscription)
+### AVD Resource Group (Optional - `avdenabled=true`)
 Azure Virtual Desktop deployment for remote desktop services:
 
 - **Virtual Network** - Isolated AVD deployment (10.30.0.0/16)
@@ -114,9 +107,13 @@ Azure Virtual Desktop deployment for remote desktop services:
 - **On-Premises Simulation** - Built-in testing environment
 
 ### Flexible Deployment
-- **Feature Flags** - Control what gets deployed via variables
+- **Feature Flags** - Control what gets deployed via variables:
+  - `enableresource` - Controls PaaS resources (SQL, App Service, Storage, Application Gateway, Azure Firewall, Azure Front Door)
+  - `enablevms` - Controls all Virtual Machines and Azure Bastion hosts
+  - `avdenabled` - Controls Azure Virtual Desktop infrastructure
+  - `onpremises` - Controls on-premises simulation and VPN connectivity
 - **Conditional Resources** - Deploy only what you need
-- **Cost Optimization** - Scale from minimal to full production
+- **Cost Optimization** - Scale from minimal network-only (~$50/month) to full production (~$1200/month)
 
 ---
 
@@ -168,10 +165,10 @@ Azure Virtual Desktop deployment for remote desktop services:
 This architecture follows the Azure Landing Zone pattern with multiple subscriptions:
 
 | Subscription | Purpose | Resources |
-|-------------|---------|-----------|
+|-------------|---------|-----------||
 | **Management** | Platform management services | DNS Private Resolver, Private DNS Zones, DNS Forwarding Ruleset |
-| **Connectivity** | Network hub and shared services | Hub VNet, Azure Firewall, VPN Gateway, Bastion, On-Premises Simulation |
-| **Landing Zone Corp** | Production workloads | Spoke VNets, App Services, SQL Databases, Application Gateways, Front Door |
+| **Connectivity** | Network hub and shared services | Hub VNet, Azure Firewall, VPN Gateway, Bastion, Azure Front Door, On-Premises Simulation |
+| **Landing Zone Corp** | Production workloads | Spoke VNets, App Services, SQL Databases, Application Gateways, Storage Accounts |
 | **Landing Zone AVD** | Virtual Desktop Infrastructure | AVD VNet, Host Pool, Session Hosts, Workspace |
 
 ---

@@ -6,13 +6,13 @@ This document describes various deployment scenarios for the Hub-Spoke Azure Dem
 
 ## 🎯 Scenario Selection Guide
 
-| Scenario | Best For | Monthly Cost | Deployment Time |
-|----------|----------|--------------|-----------------|
-| [Scenario 1](#scenario-1-minimal-core-infrastructure) | Network testing, DNS validation | $50-100 | 10-15 min |
-| [Scenario 2](#scenario-2-development-environment) | Development and testing | $200-350 | 30-40 min |
-| [Scenario 3](#scenario-3-azure-virtual-desktop) | Remote desktop services | $300-500 | 45-60 min |
-| [Scenario 4](#scenario-4-production-with-disaster-recovery) | Production applications | $500-800 | 60-90 min |
-| [Scenario 5](#scenario-5-full-hybrid-cloud-with-avd) | Complete enterprise demo | $800-1200 | 90-120 min |
+| Scenario | Best For | Monthly Cost | Daily Cost | Deployment Time |
+|----------|----------|--------------|------------|-----------------||
+| [Scenario 1](#scenario-1-minimal-core-infrastructure) | Network testing, DNS validation | $50-100 | **$1.65-3.30** | 10-15 min |
+| [Scenario 2](#scenario-2-development-environment) | App development with PaaS | $800-1200 | **$26.70-40.00** | 30-40 min |
+| [Scenario 3](#scenario-3-azure-virtual-desktop) | Remote desktop services | $350-500 | **$11.70-16.70** | 45-60 min |
+| [Scenario 4](#scenario-4-production-with-disaster-recovery) | Production applications | $1200-1800 | **$40.00-60.00** | 60-90 min |
+| [Scenario 5](#scenario-5-full-hybrid-cloud-with-avd) | Complete enterprise demo | $1500-2300 | **$50.00-76.70** | 90-120 min |
 
 ---
 
@@ -64,9 +64,11 @@ onpremises                          = false
 - VNet Peerings to Hub
 
 ### 💰 Cost Estimate
-- DNS Private Resolver: ~$55/month
+- DNS Private Resolver: ~$55/month (~$1.85/day)
 - Other resources: Free (VNets, resource groups)
-- **Total**: ~$50-100/month
+- **Total**: ~$50-100/month (~$1.65-3.30/day)
+
+> **💡 Daily Cost**: Perfect for short-term testing at **~$2-3/day**
 
 ### ⏱️ Deployment Time
 - 10-15 minutes
@@ -88,7 +90,7 @@ az network private-dns zone list --resource-group rg-dnszones
 ## Scenario 2: Development Environment
 
 ### 📋 Overview
-Lightweight environment for application development and testing without expensive networking components like Azure Firewall or VPN Gateways.
+Complete application stack for development and testing including all PaaS resources, Azure Firewall, and Azure Front Door. Excludes VPN Gateway and on-premises connectivity to reduce costs.
 
 ### 🎯 Use Cases
 - Application development
@@ -128,6 +130,13 @@ onpremises                          = false
 - Azure Bastion (for VM access)
 - Management VM in hub
 
+**Connectivity Subscription:**
+- Hub VNet with all subnets
+- **Azure Firewall** (Standard)
+- **Azure Front Door** (global load balancer)
+- Azure Bastion (for VM access)
+- Management VM in hub
+
 **Landing Zone Corp Subscription:**
 - Spoke VNet (Primary)
 - Spoke DR VNet
@@ -136,22 +145,22 @@ onpremises                          = false
 - Application Gateways (Primary + DR)
 - Storage Accounts (Primary + DR)
 - Private Endpoints for all PaaS services
-- Test VMs in spokes
-- **NO Azure Firewall**
-- **NO VPN Gateway**
-- **NO Azure Front Door**
+- Test VMs in spokes (3x Windows Server)
+- **NO VPN Gateway** (saves ~$280/month)
 
 ### 💰 Cost Estimate
-- DNS Private Resolver: ~$55/month
-- Azure Bastion: ~$140/month
-- SQL Databases (2x Basic): ~$10-30/month
-- App Services (2x Basic): ~$26-110/month
-- Application Gateways (2x): ~$500-800/month
-- VMs (3x B2ms): ~$180-240/month
-- Storage: ~$10/month
-- **Total**: ~$200-350/month
+- DNS Private Resolver: ~$55/month (~$1.85/day)
+- **Azure Firewall**: ~$800/month (~$26.70/day)
+- **Azure Front Door**: ~$35 + usage/month (~$1.20/day base)
+- Azure Bastion: ~$140/month (~$4.70/day)
+- SQL Databases (2x Basic): ~$10-30/month (~$0.35-1.00/day)
+- App Services (2x Basic): ~$26-110/month (~$0.90-3.70/day)
+- Application Gateways (2x): ~$500-800/month (~$16.70-26.70/day)
+- VMs (3x B2ms): ~$180-240/month (~$6.00-8.00/day)
+- Storage: ~$10/month (~$0.35/day)
+- **Total**: ~$800-1200/month (~**$26.70-40.00/day**)
 
-> **Note**: You can reduce costs by skipping Application Gateways in development
+> **💡 Daily Cost**: Primary costs are Azure Firewall (~$27/day) and App Gateways (~$17-27/day). For short-term testing, consider Scenario 1 instead.
 
 ### ⏱️ Deployment Time
 - 30-40 minutes
@@ -225,15 +234,21 @@ onpremises                          = true
 - VNet Peering with gateway transit enabled
 
 **Landing Zone Corp Subscription:**
-- Spoke VNets (empty, for future use)
+- Spoke VNet (10.10.0.0/16) with subnets (frontend, backend, servers, app gateway)
+- Spoke DR VNet (10.20.0.0/16) with subnets (frontend, backend, servers, app gateway)
+- VNet Peerings
+- Network Security Groups
+- (No PaaS resources - enableresource=false)
 
 ### 💰 Cost Estimate
-- DNS Private Resolver: ~$55/month
-- VPN Gateways (2x): ~$280-560/month
-- DNS Server VM: ~$70/month
-- AVD Session Hosts (2x D2s_v3): ~$260-360/month
-- Azure Bastion: ~$140/month
-- **Total**: ~$300-500/month
+- DNS Private Resolver: ~$55/month (~$1.85/day)
+- VPN Gateways (2x): ~$280-560/month (~$9.35-18.70/day)
+- DNS Server VM: ~$70/month (~$2.35/day)
+- AVD Session Hosts (2x D2s_v3): ~$260-360/month (~$8.70-12.00/day)
+- Azure Bastion: ~$140/month (~$4.70/day)
+- **Total**: ~$350-500/month (~**$11.70-16.70/day**)
+
+> **💡 Daily Cost**: At **~$12-17/day**, suitable for weekly or monthly testing. Stop session hosts when not in use to reduce costs.
 
 ### ⏱️ Deployment Time
 - 45-60 minutes (VPN gateways take 30-45 min)
@@ -329,17 +344,19 @@ onpremises                          = true
 - Test VMs (Primary + DR + Hub)
 
 ### 💰 Cost Estimate
-- DNS Private Resolver: ~$55/month
-- Azure Firewall: ~$800/month
-- VPN Gateways (2x): ~$280-560/month
-- Azure Bastion (2x): ~$280/month
-- SQL Databases (2x): ~$10-30/month
-- App Services (2x): ~$26-110/month
-- Application Gateways (2x): ~$500-800/month
-- Azure Front Door: ~$35 + usage
-- VMs (4x): ~$240-320/month
-- Storage: ~$20/month
-- **Total**: ~$500-800/month
+- DNS Private Resolver: ~$55/month (~$1.85/day)
+- Azure Firewall: ~$800/month (~$26.70/day)
+- VPN Gateways (2x): ~$280-560/month (~$9.35-18.70/day)
+- Azure Bastion (2x): ~$280/month (~$9.35/day)
+- SQL Databases (2x): ~$10-30/month (~$0.35-1.00/day)
+- App Services (2x): ~$26-110/month (~$0.90-3.70/day)
+- Application Gateways (2x): ~$500-800/month (~$16.70-26.70/day)
+- Azure Front Door: ~$35 + usage (~$1.20/day base)
+- VMs (5x total: hub, on-prem, 3x spoke): ~$300-400/month (~$10.00-13.35/day)
+- Storage: ~$20/month (~$0.70/day)
+- **Total**: ~$1200-1800/month (~**$40.00-60.00/day**)
+
+> **💡 Daily Cost**: At **~$40-60/day**, suitable only for multi-day production testing. Major costs: Firewall (~$27/day), App Gateways (~$17-27/day), VPN (~$9-19/day).
 
 ### ⏱️ Deployment Time
 - 60-90 minutes
@@ -410,18 +427,20 @@ onpremises                          = true
 - All security features
 
 ### 💰 Cost Estimate
-- DNS Private Resolver: ~$55/month
-- Azure Firewall: ~$800/month
-- VPN Gateways (2x): ~$280-560/month
-- Azure Bastion (2x): ~$280/month
-- SQL Databases (2x): ~$10-30/month
-- App Services (2x): ~$26-110/month
-- Application Gateways (2x): ~$500-800/month
-- Azure Front Door: ~$35 + usage
-- AVD Session Hosts (2x): ~$260-360/month
-- VMs (6x): ~$360-480/month
-- Storage: ~$30/month
-- **Total**: ~$800-1200/month
+- DNS Private Resolver: ~$55/month (~$1.85/day)
+- Azure Firewall: ~$800/month (~$26.70/day)
+- VPN Gateways (2x): ~$280-560/month (~$9.35-18.70/day)
+- Azure Bastion (2x): ~$280/month (~$9.35/day)
+- SQL Databases (2x): ~$10-30/month (~$0.35-1.00/day)
+- App Services (2x): ~$26-110/month (~$0.90-3.70/day)
+- Application Gateways (2x): ~$500-800/month (~$16.70-26.70/day)
+- Azure Front Door: ~$35 + usage (~$1.20/day base)
+- AVD Session Hosts (2x D2s_v3): ~$260-360/month (~$8.70-12.00/day)
+- VMs (5x workload + 1x DNS): ~$360-480/month (~$12.00-16.00/day)
+- Storage: ~$30/month (~$1.00/day)
+- **Total**: ~$1500-2300/month (~**$50.00-76.70/day**)
+
+> **💡 Daily Cost**: At **~$50-77/day**, this is expensive for testing. Deploy only for comprehensive enterprise demos. Consider destroying after each use.
 
 ### ⏱️ Deployment Time
 - 90-120 minutes

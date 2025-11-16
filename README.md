@@ -39,25 +39,32 @@ terraform apply
 
 This Terraform configuration deploys a production-ready hub-and-spoke topology across multiple Azure subscriptions:
 
-**Hub/Shared Services:**
+**Hub/Shared Services (Always Deployed):**
 - Virtual Network (10.0.0.0/16)
-- Azure Firewall (optional)
-- VPN Gateway (optional)
 - DNS Private Resolver
-- Azure Bastion
+- VNet Peerings
+- Private DNS Zones
 
-**Spoke Workloads:**
-- Primary Spoke (10.10.0.0/16)
-- DR Spoke (10.20.0.0/16)
-- SQL Databases with Private Endpoints
-- App Services
-- Application Gateways
-- Azure Front Door
+**Hub/Shared Services (Optional Components):**
+- Azure Firewall (`enableresource=true`)
+- Azure Front Door (`enableresource=true`)
+- VPN Gateway (`onpremises=true`)
+- Windows VM + Azure Bastion (`enablevms=true`)
 
-**Optional Components:**
-- Azure Virtual Desktop (10.30.0.0/16)
-- On-Premises Simulation (10.200.0.0/16)
-- Site-to-Site VPN
+**Spoke Workloads (Always Deployed):**
+- Primary Spoke VNet (10.10.0.0/16)
+- DR Spoke VNet (10.20.0.0/16)
+
+**Spoke Workloads (Optional Components):**
+- SQL Databases with Private Endpoints (`enableresource=true`)
+- App Services with VNet Integration (`enableresource=true`)
+- Application Gateways (`enableresource=true`)
+- Storage Accounts (`enableresource=true`)
+- Windows VMs (`enablevms=true`)
+
+**Optional Add-ons:**
+- Azure Virtual Desktop (`avdenabled=true`)
+- On-Premises Simulation with VPN (`onpremises=true`)
 
 For detailed architecture information, see [Project Overview](docs/OVERVIEW.md).
 
@@ -72,8 +79,8 @@ This deployment follows the **Azure Landing Zone pattern** with separate subscri
 | Subscription | Purpose | Resources Deployed |
 |--------------|---------|-------------------|
 | **Management** | Platform management (optional - not used in this demo) | Reserved for future management services |
-| **Connectivity** | Network hub, shared services, and DNS | Hub VNet, VPN Gateway, Azure Firewall, Azure Bastion, On-Premises simulation, **DNS Private Resolver, Private DNS Zones, DNS Forwarding Ruleset** |
-| **Landing Zone Corp** | Application workloads | Spoke VNets, SQL Databases, App Services, Application Gateways, Front Door, Storage Accounts |
+| **Connectivity** | Network hub, shared services, and DNS | Hub VNet, VPN Gateway, Azure Firewall, Azure Bastion, **Azure Front Door**, On-Premises simulation, **DNS Private Resolver, Private DNS Zones, DNS Forwarding Ruleset** |
+| **Landing Zone Corp** | Application workloads | Spoke VNets, SQL Databases, App Services, Application Gateways, Storage Accounts |
 | **Landing Zone AVD** | Virtual Desktop Infrastructure | AVD VNet, Host Pool, Session Hosts, Application Groups, Workspace |
 
 > **📝 Note**: According to Azure Landing Zone best practices, all DNS resources (Private Resolver, Private DNS Zones, and Forwarding Rulesets) are deployed in the **Connectivity subscription** alongside the network hub.
@@ -135,13 +142,13 @@ Choose a scenario based on your needs:
 
 > **📊 Note**: Cost and time estimates below are **approximations only** and have not been measured in production. Actual costs and deployment times will vary based on Azure region, subscription type, discounts, resource usage patterns, and other factors. Use the [Azure Pricing Calculator](https://azure.microsoft.com/pricing/calculator/) for accurate cost estimates.
 
-| Scenario | Use Case | Estimated Cost/Month | Estimated Time |
-|----------|----------|----------------------|----------------|
-| **Minimal** | Network testing | ~$50-100 | ~10-15 min |
-| **Development** | App development | ~$200-350 | ~30-40 min |
-| **AVD** | Virtual desktops | ~$300-500 | ~45-60 min |
-| **Production** | Full app stack with DR | ~$500-800 | ~60-90 min |
-| **Enterprise** | Everything enabled | ~$800-1200 | ~90-120 min |
+| Scenario | Use Case | Monthly Cost | Daily Cost | Deployment Time |
+|----------|----------|--------------|------------|----------------|
+| **Minimal** | Network testing | ~$50-100 | **~$2-3** | ~10-15 min |
+| **Development** | App development with PaaS | ~$800-1200 | **~$27-40** | ~30-40 min |
+| **AVD** | Virtual desktops | ~$350-500 | **~$12-17** | ~45-60 min |
+| **Production** | Full app stack with DR + VPN | ~$1200-1800 | **~$40-60** | ~60-90 min |
+| **Enterprise** | Everything enabled | ~$1500-2300 | **~$50-77** | ~90-120 min |
 
 See [Use Cases](docs/USECASES.md) for detailed scenario configurations.
 
@@ -161,41 +168,48 @@ See [Use Cases](docs/USECASES.md) for detailed scenario configurations.
 
 ## 📊 What Gets Deployed
 
-The deployment is fully customizable via feature flags:
+The deployment is **fully modular** and controlled by four feature flags:
 
-### Always Deployed (Base Infrastructure)
-- Hub VNet with DNS Private Resolver
-- Spoke VNets (Primary and DR)
-- VNet Peerings
-- Private DNS Zones
-- Resource Groups
+### Always Deployed (Base Network Infrastructure)
+- Hub VNet (10.0.0.0/16) with subnets
+- Spoke VNets - Primary (10.10.0.0/16) and DR (10.20.0.0/16)
+- VNet Peerings between Hub and Spokes
+- DNS Private Resolver (inbound and outbound endpoints)
+- Private DNS Zones (20+ privatelink zones)
+- Resource Groups (4 resource groups across subscriptions)
+- Network Security Groups (NSGs for all subnets)
 
-### Optional Components (via Feature Flags)
+### Optional Components (Controlled by Feature Flags)
 
-**`enableresource = true`:**
-- Azure SQL Databases (Primary + DR)
-- App Services (Primary + DR)
-- Application Gateways (Primary + DR)
-- Azure Front Door
-- Azure Firewall
-- Storage Accounts
-- Private Endpoints
+#### `enableresource = true` - PaaS Resources (~$500-700/month)
+- **Azure SQL Databases** (Primary + DR) with geo-replication
+- **App Services** (Primary + DR) with VNet integration
+- **Application Gateways** (Primary + DR) with WAF
+- **Azure Front Door** - Global load balancer
+- **Azure Firewall** - Network security appliance
+- **Storage Accounts** (Primary + DR)
+- **Private Endpoints** - For SQL, Storage, and App Services
 
-**`enablevms = true`:**
-- Test VMs in Hub and Spokes
-- Azure Bastion hosts
+#### `enablevms = true` - Virtual Machines (~$150-200/month)
+- **Test VMs** in Hub and both Spoke VNets (Windows Server)
+- **Azure Bastion hosts** in Hub and On-Premises (if enabled)
+- Enables secure VM access without public IPs
 
-**`avdenabled = true`:**
-- AVD Host Pool
-- Session Host VMs (Windows 11)
-- Application Group
-- AVD Workspace
+#### `avdenabled = true` - Azure Virtual Desktop (~$300-400/month)
+- **AVD VNet** (10.30.0.0/16)
+- **Host Pool** - Pooled desktop configuration
+- **Session Host VMs** - Windows 11 Enterprise (count configurable)
+- **Application Group** - Desktop publishing
+- **AVD Workspace** - User access portal
+- VNet peering to Hub
 
-**`onpremises = true`:**
-- On-premises VNet simulation
-- VPN Gateways (Hub and On-premises)
-- Site-to-Site VPN Connection
-- DNS Server VM
+#### `onpremises = true` - Hybrid Connectivity (~$350-450/month)
+- **On-premises VNet** simulation (10.200.0.0/16)
+- **VPN Gateways** (Hub and On-premises) - Site-to-site VPN
+- **DNS Server VM** - Windows Server with contoso.local zone
+- **Azure Bastion** - Secure access to on-premises VMs
+- **VNet-to-VNet Connection** - Encrypted tunnel
+- **DNS Forwarding Ruleset** - Conditional DNS forwarding
 
 ---
 
@@ -270,10 +284,10 @@ For detailed troubleshooting, see [Usage Guide](docs/USAGE.md).
 | Configuration | Estimated Monthly Cost |
 |--------------|------------------------|
 | Network only (minimal) | ~$50-100 |
-| Development environment | ~$200-350 |
-| AVD deployment | ~$300-500 |
-| Production with DR | ~$500-800 |
-| Full enterprise deployment | ~$800-1200 |
+| Development with PaaS (enableresource=true) | ~$800-1200 |
+| AVD deployment | ~$350-500 |
+| Production with DR + VPN | ~$1200-1800 |
+| Full enterprise deployment | ~$1500-2300 |
 
 **Cost optimization tips:**
 - Use `enableresource = false` to skip expensive PaaS services
