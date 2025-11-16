@@ -9,6 +9,7 @@ resource "azurerm_storage_account" "storage_account" {
   tags = {
     Environment = "Demo"
     EnvName     = "HUB-Spoke Azure Demo"
+    SecurityControl    = "Ignore"
   }
 }
 
@@ -18,6 +19,7 @@ resource "azurerm_storage_container" "storage_container" {
   name                  = local.storage_container_name
   storage_account_id    = azurerm_storage_account.storage_account[0].id
   container_access_type = "private"
+  
 }
 
 resource "azurerm_storage_blob" "zip_file" {
@@ -89,5 +91,17 @@ resource "azurerm_app_service_virtual_network_swift_connection" "web_app" {
   subnet_id             = azurerm_subnet.frontend_subnet.id
   provider              = azurerm.landingzonecorp
 
-  depends_on = [ azurerm_windows_web_app.web_app ]
+  depends_on = [azurerm_windows_web_app.web_app]
 }
+
+# # resource "azurerm_role_assignment" "web_app_blob_reader" {
+# #   count                = local.enableresource ? 1 : 0
+# #   scope                = azurerm_storage_account.storage_account[0].id # or use container ID for tighter scope
+# #   role_definition_name = "Storage Blob Data Reader"
+# #   principal_id         = azurerm_windows_web_app.web_app[0].identity[0].principal_id
+
+# #   depends_on = [
+# #     azurerm_windows_web_app.web_app,
+# #     azurerm_storage_account.storage_account
+# #   ]
+# # }

@@ -23,6 +23,7 @@ provider "azurerm" {
   alias           = "landingzoneavd"
   subscription_id = var.landingzoneavdSubscriptionID
   resource_provider_registrations = "none"
+  storage_use_azuread = true  # Enable OAuth for storage
 }
 
 terraform {

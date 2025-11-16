@@ -109,6 +109,31 @@ resource "azurerm_subnet" "general_servers" {
   provider             = azurerm.connectivity
 }
 
+resource "azurerm_subnet" "core_bastion_subnet" {
+  name                 = "AzureBastionSubnet"
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  resource_group_name  = azurerm_resource_group.rg_shared.name
+  address_prefixes     = local.core_bastion_subnet_prefixes
+  provider             = azurerm.connectivity
+}
+
+resource "azurerm_network_security_group" "core_bastion_nsg" {
+  provider            = azurerm.connectivity
+  name                = "core-bastion-nsg"
+  location            = azurerm_resource_group.rg_shared.location
+  resource_group_name = azurerm_resource_group.rg_shared.name
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+resource "azurerm_subnet_network_security_group_association" "core_bastion_nsg_association" {
+  provider                  = azurerm.connectivity
+  subnet_id                 = azurerm_subnet.core_bastion_subnet.id
+  network_security_group_id = azurerm_network_security_group.core_bastion_nsg.id
+}
+
 resource "azurerm_network_security_group" "servers_nsg" {
   provider            = azurerm.landingzonecorp
   name                = "servers-nsg"
@@ -196,12 +221,13 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dns-zone-to-vnet-link"
 }
 
 resource "azurerm_public_ip" "vpn_gateway_ip" {
+  count               = var.onpremises ? 1 : 0
   name                = "vpngateway-public-ip"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
   allocation_method   = "Static" # VPN Gateways typically use dynamically allocated IPs
   sku                 = "Standard"
-  provider = azurerm.connectivity
+  provider            = azurerm.connectivity
   tags = {
     Environment = "Demo"
     EnvName     = "HUB-Spoke Azure Demo"
@@ -209,6 +235,7 @@ resource "azurerm_public_ip" "vpn_gateway_ip" {
 }
 
 resource "azurerm_virtual_network_gateway" "vpn_gateway" {
+  count               = var.onpremises ? 1 : 0
   name                = "vpngateway"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
@@ -220,7 +247,7 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
 
   ip_configuration {
     name                          = "vpngateway-ipconfig"
-    public_ip_address_id          = azurerm_public_ip.vpn_gateway_ip.id
+    public_ip_address_id          = azurerm_public_ip.vpn_gateway_ip[0].id
     private_ip_address_allocation = "Dynamic"
     subnet_id                     = azurerm_subnet.vpn_gateway.id
   }
@@ -229,8 +256,8 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
     create = "60m"
     update = "60m"
   }
-  depends_on = [ azurerm_public_ip.vpn_gateway_ip,
-  azurerm_subnet.vpn_gateway ]
+  depends_on = [azurerm_public_ip.vpn_gateway_ip,
+  azurerm_subnet.vpn_gateway]
   tags = {
     Environment = "Demo"
     EnvName     = "HUB-Spoke Azure Demo"
@@ -238,20 +265,22 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
 }
 
 resource "azurerm_private_dns_resolver_virtual_network_link" "contosolocal" {
-  name                                           = "contosolocal-dns-forward-ruleset-vnet-link"
-  dns_forwarding_ruleset_id = azurerm_private_dns_resolver_dns_forwarding_ruleset.contosolocal.id
-  virtual_network_id                             = azurerm_virtual_network.vnet.id
-  depends_on = [ azurerm_virtual_network.vnet,
-  azurerm_private_dns_resolver_dns_forwarding_ruleset.contosolocal ]
+  count                         = var.onpremises ? 1 : 0
+  name                          = "contosolocal-dns-forward-ruleset-vnet-link"
+  dns_forwarding_ruleset_id     = azurerm_private_dns_resolver_dns_forwarding_ruleset.contosolocal[0].id
+  virtual_network_id            = azurerm_virtual_network.vnet.id
+  depends_on = [azurerm_virtual_network.vnet,
+  azurerm_private_dns_resolver_dns_forwarding_ruleset.contosolocal]
 }
 
 resource "azurerm_private_dns_resolver_dns_forwarding_ruleset" "contosolocal" {
-  name                                       = "contosolocal"
-  resource_group_name = azurerm_resource_group.rg_dnszones.name
-  location            = azurerm_resource_group.rg_dnszones.location
-  private_dns_resolver_outbound_endpoint_ids = [azurerm_private_dns_resolver_outbound_endpoint.private_dns_resolver_outbound_endpoint.id]
-  provider = azurerm.connectivity
-  depends_on = [azurerm_private_dns_resolver_outbound_endpoint.private_dns_resolver_outbound_endpoint]
+  count                                          = var.onpremises ? 1 : 0
+  name                                           = "contosolocal"
+  resource_group_name                            = azurerm_resource_group.rg_dnszones.name
+  location                                       = azurerm_resource_group.rg_dnszones.location
+  private_dns_resolver_outbound_endpoint_ids     = [azurerm_private_dns_resolver_outbound_endpoint.private_dns_resolver_outbound_endpoint.id]
+  provider                                       = azurerm.connectivity
+  depends_on                                     = [azurerm_private_dns_resolver_outbound_endpoint.private_dns_resolver_outbound_endpoint]
   tags = {
     Environment = "Demo"
     EnvName     = "HUB-Spoke Azure Demo"
@@ -259,17 +288,18 @@ resource "azurerm_private_dns_resolver_dns_forwarding_ruleset" "contosolocal" {
 }
 
 resource "azurerm_private_dns_resolver_forwarding_rule" "contosolocal" {
+  count                     = var.onpremises && local.enablevms ? 1 : 0
   name                      = "contosolocal-rule"
-  dns_forwarding_ruleset_id = azurerm_private_dns_resolver_dns_forwarding_ruleset.contosolocal.id
+  dns_forwarding_ruleset_id = azurerm_private_dns_resolver_dns_forwarding_ruleset.contosolocal[0].id
   domain_name               = "contoso.local."
   enabled                   = true
   target_dns_servers {
     ip_address = "${azurerm_windows_virtual_machine.dnsserver_vm[0].private_ip_address}"
     port       = 53
   }
-  provider = azurerm.connectivity
-  depends_on = [ azurerm_windows_virtual_machine.dnsserver_vm[0], 
-  azurerm_private_dns_resolver_dns_forwarding_ruleset.contosolocal ]
+  provider   = azurerm.connectivity
+  depends_on = [azurerm_windows_virtual_machine.dnsserver_vm,
+  azurerm_private_dns_resolver_dns_forwarding_ruleset.contosolocal]
 }
 
 resource "azurerm_private_dns_resolver" "dns_private_resolver" {
@@ -406,6 +436,41 @@ resource "azurerm_windows_virtual_machine" "corevm" {
     offer     = "WindowsServer"
     sku       = "2016-Datacenter"
     version   = "latest"
+  }
+
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+resource "azurerm_public_ip" "core_bastion_ip" {
+  count               = local.enablevms ? 1 : 0
+  provider            = azurerm.connectivity
+  name                = local.core_bastion_ip_name
+  location            = azurerm_resource_group.rg_shared.location
+  resource_group_name = azurerm_resource_group.rg_shared.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+resource "azurerm_bastion_host" "core_bastion" {
+  count               = local.enablevms ? 1 : 0
+  provider            = azurerm.connectivity
+  name                = local.core_bastion_name
+  location            = azurerm_resource_group.rg_shared.location
+  resource_group_name = azurerm_resource_group.rg_shared.name
+  sku                 = "Standard"
+
+  ip_configuration {
+    name                 = "configuration"
+    subnet_id            = azurerm_subnet.core_bastion_subnet.id
+    public_ip_address_id = azurerm_public_ip.core_bastion_ip[0].id
   }
 
   tags = {

@@ -1,4 +1,6 @@
 
+data "azurerm_client_config" "current" {}
+
 locals {
   enableresource                                  = var.enableresource
   enablevms                                       = var.enablevms
@@ -12,9 +14,9 @@ locals {
   #resource group
   rgspoke                                         = "rg-spoke"
   rgspokedr                                       = "rg-spoke-dr"
-  spokedr_location                                = "northeurope"
+  spokedr_location                                = "ukwest"
   rg_onpremises                                   = "rg-onpremises"
-  rg_shared_name                                  = "rg-core" #"rg-shared"
+  rg_shared_name                                  = "rg-core"
   rg_dnszones_name                                = "rg-dnszones"
 
   # Virtual Machine
@@ -34,18 +36,19 @@ locals {
   sqlserver_name                                  = "test-sql-server-01"
   sqlserver_namedr                                = "test-sql-server-01dr"
   sqldb_name                                      = "test-sql-database"
-  sqldb_namedr                                    = "test-sql-databaser"
+  sqldb_namedr                                    = "test-sql-databasedr"
 
   # Bastion
   azurebastion_ip_name                            = "azurebastion-ip"
   azurebastion_name                               = "azurebastion"
+  core_bastion_ip_name                            = "core-bastion-ip"
+  core_bastion_name                               = "core-bastion"
 
   # App Service
   storage_account_name                            = "webappstorage01"
   storage_blob_name                               = "MyWebApp.zip"
   web_app_name                                    = "test-web-app-01"
   web_app_name_dr                                 = "test-web-app-01dr"
-
 
   # Front Door and Application Gateway
   cdn_frontdoor_profile_name                      = "my-front-door01"
@@ -54,9 +57,7 @@ locals {
   app-gateway                                     = "app-gateway"
   app-gatewaydr                                   = "app-gatewaydr"
 
-
   vpngatewayonprem                                = "gatewayonpremvpn"
-
 
   # Vnet and Subnet names
   spoke_vnet_name                                 = "spoke-vnet"
@@ -67,7 +68,7 @@ locals {
   backend_subnet_prefixes                         = ["10.10.2.0/24"]
   servers_subnet_name                             = "servers"
   servers_subnet_prefixes                         = ["10.10.4.0/24"]
-  appgw_subnet                                    = ["10.10.3.0/24"]
+  appgw_subnet_prefixes                           = ["10.10.3.0/24"]
   spokedr_vnet_name                               = "spokedr-vnet"
   spokedr_vnet_address_space                      = ["10.20.0.0/16"]
   frontend_subnetdr_name                          = "frontend"
@@ -76,7 +77,7 @@ locals {
   backend_subnetdr_prefixes                       = ["10.20.2.0/24"]
   servers_subnetdr_name                           = "servers"
   servers_subnetdr_prefixes                       = ["10.20.4.0/24"]
-  appgw_subnetdr                                  = ["10.20.3.0/24"]
+  appgw_subnetdr_prefixes                         = ["10.20.3.0/24"]
   onpremises_vnet_name                            = "on-premises-vnet"
   onpremises_vnet_address_space                   = ["10.200.0.0/16"]
   dnsserver_subnet_name                           = "dnsserver"
@@ -94,6 +95,7 @@ locals {
   dns_private_resolver_inbound_subnet_prefixes    = ["10.0.4.0/24"]
   general_servers_subnet_name                     = "subnet-servers"
   general_servers_subnet_prefixes                 = ["10.0.5.0/24"]
+  core_bastion_subnet_prefixes                    = ["10.0.6.0/26"]
 
   # AVD
   rgavd                                           = "rg-avd"

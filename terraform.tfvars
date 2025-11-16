@@ -1,11 +1,14 @@
 # subscription IDs
-ManagementSubscriptionID            = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXXX" 
-connectivitySubscriptionID          = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXXX"
-landingzonecorpSubscriptionID       = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXXX"
-landingzoneavdSubscriptionID        = "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXXX"
-enableresource                      = "true"
-enablevms                           = "true"
+ManagementSubscriptionID            = "6e12ce40-108b-4c69-8534-01c9808df1ea" 
+connectivitySubscriptionID          = "d55ef124-89a6-440a-a875-36435ccf7cae"
+landingzonecorpSubscriptionID       = "99aeffe9-3bec-409a-bd35-753edf06ccf6"
+landingzoneavdSubscriptionID        = "99aeffe9-3bec-409a-bd35-753edf06ccf6"
 
-vpnsharedkey                        = "<YourSharedKey>" # Pre-shared key for VNet connection
-vm_admin_password                   = "<YourAdminPassword>" # Password for VM administrator accounts
-administrator_sql_login_password    = "<YourSQLAdminPassword>" # Password for SQL administrator accounts
+vpnsharedkey                        = "123456789012345" # Pre-shared key for VNet connection
+vm_admin_password                   = "P@$$w0rd123!" # Password for VM administrator accounts
+administrator_sql_login_password    = "P@$$w0rd!"
+
+enableresource                      = true
+enablevms                           = false
+avdenabled                          = false
+onpremises                          = false
