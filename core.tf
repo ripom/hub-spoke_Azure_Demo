@@ -122,6 +122,105 @@ resource "azurerm_network_security_group" "core_bastion_nsg" {
   name                = "core-bastion-nsg"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
+  
+  # Inbound rules required by Azure Bastion
+  security_rule {
+    name                       = "AllowHttpsInBound"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "Internet"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "AllowGatewayManagerInBound"
+    priority                   = 110
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "GatewayManager"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "AllowAzureLoadBalancerInBound"
+    priority                   = 120
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "AzureLoadBalancer"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "AllowBastionHostCommunicationInBound"
+    priority                   = 130
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_ranges    = ["8080", "5701"]
+    source_address_prefix      = "VirtualNetwork"
+    destination_address_prefix = "VirtualNetwork"
+  }
+
+  # Outbound rules required by Azure Bastion
+  security_rule {
+    name                       = "AllowSshRdpOutBound"
+    priority                   = 100
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_ranges    = ["22", "3389"]
+    source_address_prefix      = "*"
+    destination_address_prefix = "VirtualNetwork"
+  }
+
+  security_rule {
+    name                       = "AllowAzureCloudOutBound"
+    priority                   = 110
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "*"
+    destination_address_prefix = "AzureCloud"
+  }
+
+  security_rule {
+    name                       = "AllowBastionHostCommunicationOutBound"
+    priority                   = 120
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_ranges    = ["8080", "5701"]
+    source_address_prefix      = "VirtualNetwork"
+    destination_address_prefix = "VirtualNetwork"
+  }
+
+  security_rule {
+    name                       = "AllowGetSessionInformationOutBound"
+    priority                   = 130
+    direction                  = "Outbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "*"
+    destination_address_prefix = "Internet"
+  }
+
   tags = {
     Environment = "Demo"
     EnvName     = "HUB-Spoke Azure Demo"
@@ -173,6 +272,11 @@ resource "azurerm_private_dns_zone" "private_dns_zone" {
     zone18 = "privatelink.azurewebsites.net"
     zone19 = "privatelink.search.windows.net"
     zone20 = "privatelink.monitor.azure.com"
+    zone21 = "privatelink.api.azureml.ms"
+    zone22 = "privatelink.notebooks.azure.net"
+    zone23 = "privatelink.cert.api.azureml.ms"
+    zone24 = "privatelink.ml.azure.net"
+    zone25 = "privatelink.inference.ml.azure.com"
   }
   name                = each.value
   resource_group_name = azurerm_resource_group.rg_dnszones.name
@@ -206,6 +310,11 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dns-zone-to-vnet-link"
     zone18 = "privatelink.azurewebsites.net"
     zone19 = "privatelink.search.windows.net"
     zone20 = "privatelink.monitor.azure.com"
+    zone21 = "privatelink.api.azureml.ms"
+    zone22 = "privatelink.notebooks.azure.net"
+    zone23 = "privatelink.cert.api.azureml.ms"
+    zone24 = "privatelink.ml.azure.net"
+    zone25 = "privatelink.inference.ml.azure.com"
   }    
   name                  = each.value
   resource_group_name   = azurerm_resource_group.rg_dnszones.name
