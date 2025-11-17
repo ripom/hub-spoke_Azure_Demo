@@ -61,3 +61,9 @@ variable "onpremises" {
   description = "Enable or disable the deployment of on-premises resources and VPN gateway."
   default     = true
 }
+
+variable "mlenabled" {
+  type        = bool
+  description = "Enable or disable the deployment of Machine Learning workspace and related resources."
+  default     = true
+}

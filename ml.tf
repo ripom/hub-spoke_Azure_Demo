@@ -1,0 +1,391 @@
+# Machine Learning Resource Group
+resource "azurerm_resource_group" "rg_ml" {
+  provider = azurerm.landingzonecorp
+  name     = "rg-ml"
+  location = local.corelocation
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# Machine Learning Virtual Network
+resource "azurerm_virtual_network" "ml_vnet" {
+  provider            = azurerm.landingzonecorp
+  name                = "ml-vnet"
+  location            = azurerm_resource_group.rg_ml.location
+  resource_group_name = azurerm_resource_group.rg_ml.name
+  address_space       = ["10.30.0.0/16"]
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# ML VMs Subnet
+resource "azurerm_subnet" "ml_vms_subnet" {
+  provider             = azurerm.landingzonecorp
+  name                 = "ml-vms-subnet"
+  virtual_network_name = azurerm_virtual_network.ml_vnet.name
+  resource_group_name  = azurerm_resource_group.rg_ml.name
+  address_prefixes     = ["10.30.1.0/24"]
+}
+
+# ML Private Endpoints Subnet
+resource "azurerm_subnet" "ml_pe_subnet" {
+  provider             = azurerm.landingzonecorp
+  name                 = "ml-pe-subnet"
+  virtual_network_name = azurerm_virtual_network.ml_vnet.name
+  resource_group_name  = azurerm_resource_group.rg_ml.name
+  address_prefixes     = ["10.30.2.0/24"]
+}
+
+# Network Security Group for VMs Subnet
+resource "azurerm_network_security_group" "ml_vms_nsg" {
+  provider            = azurerm.landingzonecorp
+  name                = "ml-vms-nsg"
+  location            = azurerm_resource_group.rg_ml.location
+  resource_group_name = azurerm_resource_group.rg_ml.name
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# Network Security Group for Private Endpoints Subnet
+resource "azurerm_network_security_group" "ml_pe_nsg" {
+  provider            = azurerm.landingzonecorp
+  name                = "ml-pe-nsg"
+  location            = azurerm_resource_group.rg_ml.location
+  resource_group_name = azurerm_resource_group.rg_ml.name
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# NSG Association for VMs Subnet
+resource "azurerm_subnet_network_security_group_association" "ml_vms_nsg_association" {
+  provider                  = azurerm.landingzonecorp
+  subnet_id                 = azurerm_subnet.ml_vms_subnet.id
+  network_security_group_id = azurerm_network_security_group.ml_vms_nsg.id
+}
+
+# NSG Association for Private Endpoints Subnet
+resource "azurerm_subnet_network_security_group_association" "ml_pe_nsg_association" {
+  provider                  = azurerm.landingzonecorp
+  subnet_id                 = azurerm_subnet.ml_pe_subnet.id
+  network_security_group_id = azurerm_network_security_group.ml_pe_nsg.id
+}
+
+# VNet Peering: Hub to ML
+resource "azurerm_virtual_network_peering" "hub_to_ml" {
+  name                         = "hub-to-ml-peering"
+  resource_group_name          = azurerm_resource_group.rg_shared.name
+  virtual_network_name         = azurerm_virtual_network.vnet.name
+  remote_virtual_network_id    = azurerm_virtual_network.ml_vnet.id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  allow_gateway_transit        = var.onpremises ? true : false
+  use_remote_gateways          = false
+  provider                     = azurerm.connectivity
+}
+
+# VNet Peering: ML to Hub
+resource "azurerm_virtual_network_peering" "ml_to_hub" {
+  name                         = "ml-to-hub-peering"
+  resource_group_name          = azurerm_resource_group.rg_ml.name
+  virtual_network_name         = azurerm_virtual_network.ml_vnet.name
+  remote_virtual_network_id    = azurerm_virtual_network.vnet.id
+  allow_virtual_network_access = true
+  allow_forwarded_traffic      = true
+  allow_gateway_transit        = false
+  use_remote_gateways          = var.onpremises ? true : false
+  provider                     = azurerm.landingzonecorp
+  depends_on                   = [azurerm_virtual_network_gateway.vpn_gateway]
+}
+
+# Storage Account for Machine Learning Workspace
+resource "azurerm_storage_account" "ml_storage" {
+  count                    = local.mlenabled ? 1 : 0
+  provider                 = azurerm.landingzonecorp
+  name                     = "mlstorage${local.random_suffix}"
+  resource_group_name      = azurerm_resource_group.rg_ml.name
+  location                 = azurerm_resource_group.rg_ml.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+    SecurityControl    = "Ignore"
+  }
+}
+
+# Key Vault for Machine Learning Workspace
+resource "azurerm_key_vault" "ml_keyvault" {
+  count                      = local.mlenabled ? 1 : 0
+  provider                   = azurerm.landingzonecorp
+  name                       = "mlkv${local.random_suffix}"
+  location                   = azurerm_resource_group.rg_ml.location
+  resource_group_name        = azurerm_resource_group.rg_ml.name
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
+  sku_name                   = "standard"
+  purge_protection_enabled   = false
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# Application Insights for Machine Learning Workspace
+resource "azurerm_application_insights" "ml_appinsights" {
+  count               = local.mlenabled ? 1 : 0
+  provider            = azurerm.landingzonecorp
+  name                = "ml-appinsights-${local.random_suffix}"
+  location            = azurerm_resource_group.rg_ml.location
+  resource_group_name = azurerm_resource_group.rg_ml.name
+  application_type    = "web"
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# Container Registry for Machine Learning Workspace
+resource "azurerm_container_registry" "ml_acr" {
+  count               = local.mlenabled ? 1 : 0
+  provider            = azurerm.landingzonecorp
+  name                = "mlacr${local.random_suffix}"
+  resource_group_name = azurerm_resource_group.rg_ml.name
+  location            = azurerm_resource_group.rg_ml.location
+  sku                 = "Premium"
+  admin_enabled       = true
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# Machine Learning Workspace
+resource "azurerm_machine_learning_workspace" "ml_workspace" {
+  count               = local.mlenabled ? 1 : 0
+  provider            = azurerm.landingzonecorp
+  name                = "ml-workspace-${local.random_suffix}"
+  location            = azurerm_resource_group.rg_ml.location
+  resource_group_name = azurerm_resource_group.rg_ml.name
+  application_insights_id = azurerm_application_insights.ml_appinsights[0].id
+  key_vault_id            = azurerm_key_vault.ml_keyvault[0].id
+  storage_account_id      = azurerm_storage_account.ml_storage[0].id
+  container_registry_id   = azurerm_container_registry.ml_acr[0].id
+  public_network_access_enabled = false
+  
+  identity {
+    type = "SystemAssigned"
+  }
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# Private Endpoint for ML Workspace
+resource "azurerm_private_endpoint" "ml_workspace_pe" {
+  count               = local.mlenabled ? 1 : 0
+  provider            = azurerm.landingzonecorp
+  name                = "ml-workspace-pe"
+  location            = azurerm_resource_group.rg_ml.location
+  resource_group_name = azurerm_resource_group.rg_ml.name
+  subnet_id           = azurerm_subnet.ml_pe_subnet.id
+  
+  private_service_connection {
+    name                           = "ml-workspace-psc"
+    private_connection_resource_id = azurerm_machine_learning_workspace.ml_workspace[0].id
+    is_manual_connection           = false
+    subresource_names              = ["amlworkspace"]
+  }
+  
+  private_dns_zone_group {
+    name                 = "ml-workspace-dns-zone-group"
+    private_dns_zone_ids = [
+      azurerm_private_dns_zone.private_dns_zone["zone21"].id,
+      azurerm_private_dns_zone.private_dns_zone["zone22"].id,
+      azurerm_private_dns_zone.private_dns_zone["zone23"].id,
+      azurerm_private_dns_zone.private_dns_zone["zone24"].id,
+      azurerm_private_dns_zone.private_dns_zone["zone25"].id
+    ]
+  }
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+  
+  depends_on = [
+    azurerm_machine_learning_workspace.ml_workspace
+  ]
+}
+
+# Private Endpoint for Storage Account (blob)
+resource "azurerm_private_endpoint" "ml_storage_blob_pe" {
+  count               = local.mlenabled ? 1 : 0
+  provider            = azurerm.landingzonecorp
+  name                = "ml-storage-blob-pe"
+  location            = azurerm_resource_group.rg_ml.location
+  resource_group_name = azurerm_resource_group.rg_ml.name
+  subnet_id           = azurerm_subnet.ml_pe_subnet.id
+  
+  private_service_connection {
+    name                           = "ml-storage-blob-psc"
+    private_connection_resource_id = azurerm_storage_account.ml_storage[0].id
+    is_manual_connection           = false
+    subresource_names              = ["blob"]
+  }
+  
+  private_dns_zone_group {
+    name                 = "ml-storage-blob-dns-zone-group"
+    private_dns_zone_ids = [azurerm_private_dns_zone.private_dns_zone["zone2"].id]
+  }
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# Private Endpoint for Storage Account (file)
+resource "azurerm_private_endpoint" "ml_storage_file_pe" {
+  count               = local.mlenabled ? 1 : 0
+  provider            = azurerm.landingzonecorp
+  name                = "ml-storage-file-pe"
+  location            = azurerm_resource_group.rg_ml.location
+  resource_group_name = azurerm_resource_group.rg_ml.name
+  subnet_id           = azurerm_subnet.ml_pe_subnet.id
+  
+  private_service_connection {
+    name                           = "ml-storage-file-psc"
+    private_connection_resource_id = azurerm_storage_account.ml_storage[0].id
+    is_manual_connection           = false
+    subresource_names              = ["file"]
+  }
+  
+  private_dns_zone_group {
+    name                 = "ml-storage-file-dns-zone-group"
+    private_dns_zone_ids = [azurerm_private_dns_zone.private_dns_zone["zone3"].id]
+  }
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# Private Endpoint for Key Vault
+resource "azurerm_private_endpoint" "ml_keyvault_pe" {
+  count               = local.mlenabled ? 1 : 0
+  provider            = azurerm.landingzonecorp
+  name                = "ml-keyvault-pe"
+  location            = azurerm_resource_group.rg_ml.location
+  resource_group_name = azurerm_resource_group.rg_ml.name
+  subnet_id           = azurerm_subnet.ml_pe_subnet.id
+  
+  private_service_connection {
+    name                           = "ml-keyvault-psc"
+    private_connection_resource_id = azurerm_key_vault.ml_keyvault[0].id
+    is_manual_connection           = false
+    subresource_names              = ["vault"]
+  }
+  
+  private_dns_zone_group {
+    name                 = "ml-keyvault-dns-zone-group"
+    private_dns_zone_ids = [azurerm_private_dns_zone.private_dns_zone["zone12"].id]
+  }
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# Private Endpoint for Container Registry
+resource "azurerm_private_endpoint" "ml_acr_pe" {
+  count               = local.mlenabled ? 1 : 0
+  provider            = azurerm.landingzonecorp
+  name                = "ml-acr-pe"
+  location            = azurerm_resource_group.rg_ml.location
+  resource_group_name = azurerm_resource_group.rg_ml.name
+  subnet_id           = azurerm_subnet.ml_pe_subnet.id
+  
+  private_service_connection {
+    name                           = "ml-acr-psc"
+    private_connection_resource_id = azurerm_container_registry.ml_acr[0].id
+    is_manual_connection           = false
+    subresource_names              = ["registry"]
+  }
+  
+  private_dns_zone_group {
+    name                 = "ml-acr-dns-zone-group"
+    private_dns_zone_ids = [azurerm_private_dns_zone.private_dns_zone["zone15"].id]
+  }
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# Network Interface for ML VM
+resource "azurerm_network_interface" "ml_vm_nic" {
+  count               = local.enablevms ? 1 : 0
+  provider            = azurerm.landingzonecorp
+  name                = "ml-vm-nic"
+  location            = azurerm_resource_group.rg_ml.location
+  resource_group_name = azurerm_resource_group.rg_ml.name
+
+  ip_configuration {
+    name                          = "ml-vm-ipconfig"
+    subnet_id                     = azurerm_subnet.ml_vms_subnet.id
+    private_ip_address_allocation = "Dynamic"
+  }
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}
+
+# Windows Virtual Machine for ML
+resource "azurerm_windows_virtual_machine" "ml_vm" {
+  count                 = local.enablevms ? 1 : 0
+  provider              = azurerm.landingzonecorp
+  name                  = "ml-vm"
+  location              = azurerm_resource_group.rg_ml.location
+  resource_group_name   = azurerm_resource_group.rg_ml.name
+  size                  = "Standard_B2s"
+  admin_username        = local.vm_admin_username
+  admin_password        = local.vm_admin_password
+  network_interface_ids = [azurerm_network_interface.ml_vm_nic[0].id]
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+    disk_size_gb         = 128
+  }
+
+  source_image_reference {
+    publisher = "MicrosoftWindowsServer"
+    offer     = "WindowsServer"
+    sku       = "2016-Datacenter"
+    version   = "latest"
+  }
+  
+  tags = {
+    Environment = "Demo"
+    EnvName     = "HUB-Spoke Azure Demo"
+  }
+}

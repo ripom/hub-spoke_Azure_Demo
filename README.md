@@ -63,6 +63,7 @@ This Terraform configuration deploys a production-ready hub-and-spoke topology a
 - Windows VMs (`enablevms=true`)
 
 **Optional Add-ons:**
+- Machine Learning Workspace (`mlenabled=true`)
 - Azure Virtual Desktop (`avdenabled=true`)
 - On-Premises Simulation with VPN (`onpremises=true`)
 
@@ -128,6 +129,7 @@ enableresource                      = true   # PaaS resources (SQL, App Service,
 enablevms                           = true   # Virtual machines
 avdenabled                          = false  # Azure Virtual Desktop
 onpremises                          = false  # On-premises simulation and VPN
+mlenabled                           = true   # Machine Learning workspace
 ```
 
 > **⚠️ Security Warning**: Never commit `terraform.tfvars` to source control!
@@ -143,9 +145,10 @@ Choose a scenario based on your needs:
 > **📊 Note**: Cost and time estimates below are **approximations only** and have not been measured in production. Actual costs and deployment times will vary based on Azure region, subscription type, discounts, resource usage patterns, and other factors. Use the [Azure Pricing Calculator](https://azure.microsoft.com/pricing/calculator/) for accurate cost estimates.
 
 | Scenario | Use Case | Monthly Cost | Daily Cost | Deployment Time |
-|----------|----------|--------------|------------|----------------|
+|----------|----------|--------------|------------|-----------------|
 | **Minimal** | Network testing | ~$50-100 | **~$2-3** | ~10-15 min |
 | **Development** | App development with PaaS | ~$800-1200 | **~$27-40** | ~30-40 min |
+| **Machine Learning** | ML workspace with private endpoints | ~$150-250 | **~$5-8** | ~20-30 min |
 | **AVD** | Virtual desktops | ~$350-500 | **~$12-17** | ~45-60 min |
 | **Production** | Full app stack with DR + VPN | ~$1200-1800 | **~$40-60** | ~60-90 min |
 | **Enterprise** | Everything enabled | ~$1500-2300 | **~$50-77** | ~90-120 min |
@@ -210,6 +213,16 @@ The deployment is **fully modular** and controlled by four feature flags:
 - **Azure Bastion** - Secure access to on-premises VMs
 - **VNet-to-VNet Connection** - Encrypted tunnel
 - **DNS Forwarding Ruleset** - Conditional DNS forwarding
+
+#### `mlenabled = true` - Machine Learning (~$150-250/month)
+- **ML VNet** (10.30.0.0/16) with subnets for VMs and private endpoints
+- **Azure Machine Learning Workspace** with private network access
+- **Storage Account** with blob and file private endpoints
+- **Key Vault** with private endpoint
+- **Container Registry** (Premium) with private endpoint
+- **Application Insights** for workspace monitoring
+- **Windows VM** in ML VNet (if `enablevms=true`)
+- VNet peering to Hub
 
 ---
 

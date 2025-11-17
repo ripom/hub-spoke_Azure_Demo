@@ -12,3 +12,4 @@ enableresource                      = true
 enablevms                           = false
 avdenabled                          = false
 onpremises                          = false
+mlenabled                           = false

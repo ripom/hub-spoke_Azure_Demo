@@ -4,6 +4,7 @@ data "azurerm_client_config" "current" {}
 locals {
   enableresource                                  = var.enableresource
   enablevms                                       = var.enablevms
+  mlenabled                                       = var.mlenabled
 
   corelocation                                    = "uksouth"
 
