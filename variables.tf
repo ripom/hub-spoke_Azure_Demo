@@ -67,3 +67,9 @@ variable "mlenabled" {
   description = "Enable or disable the deployment of Machine Learning workspace and related resources."
   default     = true
 }
+
+variable "enableaf" {
+  type        = bool
+  description = "Enable or disable the deployment of Azure Firewall."
+  default     = true
+}

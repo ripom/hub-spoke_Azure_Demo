@@ -249,4 +249,5 @@ resource "azurerm_virtual_network_peering" "avd_to_shared" {
   allow_gateway_transit        = false
   use_remote_gateways          = var.onpremises ? true : false
   provider                     = azurerm.landingzoneavd
+  depends_on                   = [azurerm_virtual_network_gateway.vpn_gateway]
 }

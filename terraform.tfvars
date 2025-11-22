@@ -8,8 +8,9 @@ vpnsharedkey                        = "123456789012345" # Pre-shared key for VNe
 vm_admin_password                   = "P@$$w0rd123!" # Password for VM administrator accounts
 administrator_sql_login_password    = "P@$$w0rd!"
 
-enableresource                      = true
+enableresource                      = false
 enablevms                           = false
 avdenabled                          = false
 onpremises                          = false
 mlenabled                           = false
+enableaf                            = false

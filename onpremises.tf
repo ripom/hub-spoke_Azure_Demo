@@ -246,6 +246,7 @@ resource "azurerm_virtual_machine_run_command" "dns_setup" {
   name               = "dns-setup-command"
   location           = azurerm_resource_group.rg_onpremises[0].location
   virtual_machine_id = azurerm_windows_virtual_machine.dnsserver_vm[0].id
+  provider           = azurerm.landingzonecorp
 
   source {
     script = <<EOT

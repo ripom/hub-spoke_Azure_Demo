@@ -1,8 +1,8 @@
 # Machine Learning Resource Group
 resource "azurerm_resource_group" "rg_ml" {
   provider = azurerm.landingzonecorp
-  name     = "rg-ml"
-  location = local.corelocation
+  name     = local.rgml
+  location = local.rgmllocation
   tags = {
     Environment = "Demo"
     EnvName     = "HUB-Spoke Azure Demo"
@@ -12,10 +12,10 @@ resource "azurerm_resource_group" "rg_ml" {
 # Machine Learning Virtual Network
 resource "azurerm_virtual_network" "ml_vnet" {
   provider            = azurerm.landingzonecorp
-  name                = "ml-vnet"
+  name                = local.ml_vnet_name
   location            = azurerm_resource_group.rg_ml.location
   resource_group_name = azurerm_resource_group.rg_ml.name
-  address_space       = ["10.30.0.0/16"]
+  address_space       = local.ml_vnet_address_space
   
   tags = {
     Environment = "Demo"
@@ -26,25 +26,25 @@ resource "azurerm_virtual_network" "ml_vnet" {
 # ML VMs Subnet
 resource "azurerm_subnet" "ml_vms_subnet" {
   provider             = azurerm.landingzonecorp
-  name                 = "ml-vms-subnet"
+  name                 = local.ml_vms_subnet_name
   virtual_network_name = azurerm_virtual_network.ml_vnet.name
   resource_group_name  = azurerm_resource_group.rg_ml.name
-  address_prefixes     = ["10.30.1.0/24"]
+  address_prefixes     = local.ml_vms_subnet_prefixes
 }
 
 # ML Private Endpoints Subnet
 resource "azurerm_subnet" "ml_pe_subnet" {
   provider             = azurerm.landingzonecorp
-  name                 = "ml-pe-subnet"
+  name                 = local.ml_pe_subnet_name
   virtual_network_name = azurerm_virtual_network.ml_vnet.name
   resource_group_name  = azurerm_resource_group.rg_ml.name
-  address_prefixes     = ["10.30.2.0/24"]
+  address_prefixes     = local.ml_pe_subnet_prefixes
 }
 
 # Network Security Group for VMs Subnet
 resource "azurerm_network_security_group" "ml_vms_nsg" {
   provider            = azurerm.landingzonecorp
-  name                = "ml-vms-nsg"
+  name                = local.ml_vms_nsg_name
   location            = azurerm_resource_group.rg_ml.location
   resource_group_name = azurerm_resource_group.rg_ml.name
   tags = {
@@ -56,7 +56,7 @@ resource "azurerm_network_security_group" "ml_vms_nsg" {
 # Network Security Group for Private Endpoints Subnet
 resource "azurerm_network_security_group" "ml_pe_nsg" {
   provider            = azurerm.landingzonecorp
-  name                = "ml-pe-nsg"
+  name                = local.ml_pe_nsg_name
   location            = azurerm_resource_group.rg_ml.location
   resource_group_name = azurerm_resource_group.rg_ml.name
   tags = {
@@ -113,8 +113,8 @@ resource "azurerm_storage_account" "ml_storage" {
   name                     = "mlstorage${local.random_suffix}"
   resource_group_name      = azurerm_resource_group.rg_ml.name
   location                 = azurerm_resource_group.rg_ml.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
+  account_tier             = local.ml_storage_account_tier
+  account_replication_type = local.ml_storage_replication_type
   
   tags = {
     Environment = "Demo"
@@ -131,7 +131,7 @@ resource "azurerm_key_vault" "ml_keyvault" {
   location                   = azurerm_resource_group.rg_ml.location
   resource_group_name        = azurerm_resource_group.rg_ml.name
   tenant_id                  = data.azurerm_client_config.current.tenant_id
-  sku_name                   = "standard"
+  sku_name                   = local.ml_keyvault_sku
   purge_protection_enabled   = false
   
   tags = {
@@ -162,7 +162,7 @@ resource "azurerm_container_registry" "ml_acr" {
   name                = "mlacr${local.random_suffix}"
   resource_group_name = azurerm_resource_group.rg_ml.name
   location            = azurerm_resource_group.rg_ml.location
-  sku                 = "Premium"
+  sku                 = local.ml_acr_sku
   admin_enabled       = true
   
   tags = {
@@ -182,7 +182,7 @@ resource "azurerm_machine_learning_workspace" "ml_workspace" {
   key_vault_id            = azurerm_key_vault.ml_keyvault[0].id
   storage_account_id      = azurerm_storage_account.ml_storage[0].id
   container_registry_id   = azurerm_container_registry.ml_acr[0].id
-  public_network_access_enabled = false
+  public_network_access_enabled = local.ml_workspace_public_network_access
   
   identity {
     type = "SystemAssigned"
@@ -343,12 +343,12 @@ resource "azurerm_private_endpoint" "ml_acr_pe" {
 resource "azurerm_network_interface" "ml_vm_nic" {
   count               = local.enablevms ? 1 : 0
   provider            = azurerm.landingzonecorp
-  name                = "ml-vm-nic"
+  name                = "${local.ml_vm_name}-nic"
   location            = azurerm_resource_group.rg_ml.location
   resource_group_name = azurerm_resource_group.rg_ml.name
 
   ip_configuration {
-    name                          = "ml-vm-ipconfig"
+    name                          = "${local.ml_vm_name}-ipconfig"
     subnet_id                     = azurerm_subnet.ml_vms_subnet.id
     private_ip_address_allocation = "Dynamic"
   }
@@ -363,10 +363,10 @@ resource "azurerm_network_interface" "ml_vm_nic" {
 resource "azurerm_windows_virtual_machine" "ml_vm" {
   count                 = local.enablevms ? 1 : 0
   provider              = azurerm.landingzonecorp
-  name                  = "ml-vm"
+  name                  = local.ml_vm_name
   location              = azurerm_resource_group.rg_ml.location
   resource_group_name   = azurerm_resource_group.rg_ml.name
-  size                  = "Standard_B2s"
+  size                  = local.ml_vm_size
   admin_username        = local.vm_admin_username
   admin_password        = local.vm_admin_password
   network_interface_ids = [azurerm_network_interface.ml_vm_nic[0].id]
