@@ -22,47 +22,44 @@ resource "azurerm_traffic_manager_profile" "main" {
     tolerated_number_of_failures = 3
   }
 
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 # Endpoint 1: Azure Front Door (Enabled)
 resource "azurerm_traffic_manager_external_endpoint" "afd_endpoint" {
-  count              = local.enableatm && local.enableresource ? 1 : 0
-  provider           = azurerm.connectivity
-  name               = "afd-endpoint"
-  profile_id         = azurerm_traffic_manager_profile.main[0].id
-  target             = azurerm_cdn_frontdoor_endpoint.frontend_endpoint[0].host_name
-  endpoint_location  = azurerm_resource_group.rg_shared.location
-  weight             = 100
-  priority           = 1
-  enabled            = true
+  count             = local.enableatm && local.enableresource ? 1 : 0
+  provider          = azurerm.connectivity
+  name              = "afd-endpoint"
+  profile_id        = azurerm_traffic_manager_profile.main[0].id
+  target            = azurerm_cdn_frontdoor_endpoint.frontend_endpoint[0].host_name
+  endpoint_location = azurerm_resource_group.rg_shared.location
+  weight            = 100
+  priority          = 1
+  enabled           = true
 }
 
 # Endpoint 2: Application Gateway Primary (Disabled)
 resource "azurerm_traffic_manager_external_endpoint" "appgw_primary_endpoint" {
-  count              = local.enableatm && local.enableresource ? 1 : 0
-  provider           = azurerm.connectivity
-  name               = "appgw-primary-endpoint"
-  profile_id         = azurerm_traffic_manager_profile.main[0].id
-  target             = azurerm_public_ip.app_gateway_public_ip[0].fqdn
-  endpoint_location  = azurerm_resource_group.rg_spoke.location
-  weight             = 100
-  priority           = 2
-  enabled            = false
+  count             = local.enableatm && local.enableresource ? 1 : 0
+  provider          = azurerm.connectivity
+  name              = "appgw-primary-endpoint"
+  profile_id        = azurerm_traffic_manager_profile.main[0].id
+  target            = azurerm_public_ip.app_gateway_public_ip[0].fqdn
+  endpoint_location = azurerm_resource_group.rg_spoke.location
+  weight            = 100
+  priority          = 2
+  enabled           = false
 }
 
 # Endpoint 3: Application Gateway DR (Disabled)
 resource "azurerm_traffic_manager_external_endpoint" "appgw_dr_endpoint" {
-  count              = local.enableatm && local.enableresource ? 1 : 0
-  provider           = azurerm.connectivity
-  name               = "appgw-dr-endpoint"
-  profile_id         = azurerm_traffic_manager_profile.main[0].id
-  target             = azurerm_public_ip.app_gateway_public_ipdr[0].fqdn
-  endpoint_location  = azurerm_resource_group.rg_spokedr.location
-  weight             = 100
-  priority           = 3
-  enabled            = false
+  count             = local.enableatm && local.enableresource ? 1 : 0
+  provider          = azurerm.connectivity
+  name              = "appgw-dr-endpoint"
+  profile_id        = azurerm_traffic_manager_profile.main[0].id
+  target            = azurerm_public_ip.app_gateway_public_ipdr[0].fqdn
+  endpoint_location = azurerm_resource_group.rg_spokedr.location
+  weight            = 100
+  priority          = 3
+  enabled           = false
 }

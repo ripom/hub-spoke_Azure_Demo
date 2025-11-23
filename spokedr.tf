@@ -3,10 +3,7 @@ resource "azurerm_resource_group" "rg_spokedr" {
   provider = azurerm.landingzonecorp
   name     = local.rgspokedr
   location = local.spokedr_location
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags     = local.common_tags
 }
 
 resource "azurerm_virtual_network" "spokedr_vnet" {
@@ -22,10 +19,7 @@ resource "azurerm_virtual_network" "spokedr_vnet" {
     ? [azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address]
     : []
   )
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 resource "azurerm_subnet" "frontend_subnetdr" {
@@ -66,10 +60,7 @@ resource "azurerm_network_security_group" "serverdr_nsg" {
   name                = "serverdr-nsg"
   location            = azurerm_resource_group.rg_spokedr.location
   resource_group_name = azurerm_resource_group.rg_spokedr.name
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                = local.common_tags
 }
 
 resource "azurerm_subnet_network_security_group_association" "serverdr_nsg_association" {
@@ -114,10 +105,7 @@ resource "azurerm_network_security_group" "frontend_nsgdr" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 resource "azurerm_network_security_group" "backend_nsgdr" {
@@ -125,10 +113,7 @@ resource "azurerm_network_security_group" "backend_nsgdr" {
   name                = "backend-nsg"
   location            = azurerm_resource_group.rg_spokedr.location
   resource_group_name = azurerm_resource_group.rg_spokedr.name
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                = local.common_tags
 }
 
 resource "azurerm_virtual_network_peering" "shared_to_spokedr" {
@@ -153,7 +138,7 @@ resource "azurerm_virtual_network_peering" "spokedr_to_shared" {
   allow_gateway_transit        = false
   use_remote_gateways          = var.onpremises ? true : false
   provider                     = azurerm.landingzonecorp
-  
+
   depends_on = [azurerm_virtual_network_gateway.vpn_gateway]
 }
 
@@ -168,24 +153,20 @@ resource "azurerm_mssql_server" "sql_serverdr" {
   administrator_login_password  = local.administrator_sql_login_password
   minimum_tls_version           = "1.2"
   public_network_access_enabled = "false"
-  
+
   azuread_administrator {
     login_username              = "AzureAD Admin"
     object_id                   = data.azurerm_client_config.current.object_id
     tenant_id                   = data.azurerm_client_config.current.tenant_id
     azuread_authentication_only = false
   }
-  
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-    SecurityControl    = "Ignore"
-  }
+
+  tags = local.common_tags
 }
 
 
 resource "azurerm_mssql_database" "sql_databasedr" {
-  count                         = local.enableresource ? 1 : 0 # Resource is created if the variable is true
+  count        = local.enableresource ? 1 : 0 # Resource is created if the variable is true
   provider     = azurerm.landingzonecorp
   name         = local.sqldb_namedr
   server_id    = azurerm_mssql_server.sql_serverdr[0].id
@@ -194,16 +175,12 @@ resource "azurerm_mssql_database" "sql_databasedr" {
   max_size_gb  = 2
   sku_name     = "S0"
   enclave_type = "VBS"
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-    SecurityControl    = "Ignore"
-  }
+  tags         = local.common_tags
 }
 
 resource "azurerm_private_endpoint" "sql_private_endpointdr" {
-  count                         = local.enableresource ? 1 : 0 # Resource is created if the variable is true
-  provider   = azurerm.landingzonecorp
+  count    = local.enableresource ? 1 : 0 # Resource is created if the variable is true
+  provider = azurerm.landingzonecorp
 
   name                = "${azurerm_mssql_server.sql_serverdr[0].name}-db-endpoint"
   location            = azurerm_resource_group.rg_spokedr.location
@@ -221,10 +198,7 @@ resource "azurerm_private_endpoint" "sql_private_endpointdr" {
     private_connection_resource_id = azurerm_mssql_server.sql_serverdr[0].id
     subresource_names              = ["sqlServer"]
   }
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 # Create spokedrVM
@@ -241,10 +215,7 @@ resource "azurerm_network_interface" "spokedrvm_nic" {
     subnet_id                     = azurerm_subnet.servers_subnetdr.id
     private_ip_address_allocation = "Dynamic"
   }
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 resource "azurerm_windows_virtual_machine" "spokedrvm" {
@@ -270,10 +241,7 @@ resource "azurerm_windows_virtual_machine" "spokedrvm" {
     sku       = "2016-Datacenter"
     version   = "latest"
   }
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 
@@ -288,11 +256,8 @@ resource "azurerm_public_ip" "app_gateway_public_ipdr" {
   allocation_method   = "Static"
   sku                 = "Standard"
 
-  domain_name_label   = "${local.appgwdr_pip_domainname}-${local.random_suffix}" # Adds the FQDN to the public IP
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  domain_name_label = "${local.appgwdr_pip_domainname}-${local.random_suffix}" # Adds the FQDN to the public IP
+  tags              = local.common_tags
 }
 
 resource "azurerm_application_gateway" "app_gatewaydr" {
@@ -333,19 +298,19 @@ resource "azurerm_application_gateway" "app_gatewaydr" {
     port                  = 443
     protocol              = "Https"
     request_timeout       = 20
-    probe_name            = "https-probe" # Custom probe configured below
+    probe_name            = "https-probe"                                                       # Custom probe configured below
     host_name             = "${local.web_app_name_dr}-${local.random_suffix}.azurewebsites.net" # Host name override as per the image
   }
 
   probe {
-    name                = "https-probe"
-    protocol            = "Https"
-    host                = "${local.web_app_name_dr}-${local.random_suffix}.azurewebsites.net" # Same host name as backend override
-    path                = "/"
-    interval            = 30
-    timeout             = 30
-    unhealthy_threshold = 3
-    port                = 443
+    name                                      = "https-probe"
+    protocol                                  = "Https"
+    host                                      = "${local.web_app_name_dr}-${local.random_suffix}.azurewebsites.net" # Same host name as backend override
+    path                                      = "/"
+    interval                                  = 30
+    timeout                                   = 30
+    unhealthy_threshold                       = 3
+    port                                      = 443
     pick_host_name_from_backend_http_settings = false
     match {
       status_code = [200, 399] # Match status codes in the range 200-399
@@ -367,10 +332,7 @@ resource "azurerm_application_gateway" "app_gatewaydr" {
     backend_http_settings_name = "https-settings"
     priority                   = 100 # Assign priority to this rule
   }
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 resource "azurerm_network_security_group" "app_gateway_nsgdr" {
@@ -402,10 +364,7 @@ resource "azurerm_network_security_group" "app_gateway_nsgdr" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 resource "azurerm_subnet_network_security_group_association" "app_gateway_nsg_associationdr" {

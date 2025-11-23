@@ -3,10 +3,7 @@ resource "azurerm_resource_group" "avd-rg" {
   name     = local.rgavd
   location = local.rgavdlocation
   provider = azurerm.landingzoneavd
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags     = local.common_tags
 }
 
 resource "azurerm_virtual_network" "avd-vnet" {
@@ -17,10 +14,7 @@ resource "azurerm_virtual_network" "avd-vnet" {
   address_space       = local.avdvnet-address_space
   provider            = azurerm.landingzoneavd
   depends_on          = [azurerm_resource_group.avd-rg]
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                = local.common_tags
 }
 
 resource "azurerm_subnet" "avd-subnet" {
@@ -39,10 +33,7 @@ resource "azurerm_network_security_group" "avd_servers_nsg" {
   name                = "avd_servers-nsg"
   location            = azurerm_resource_group.avd-rg[0].location
   resource_group_name = azurerm_resource_group.avd-rg[0].name
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                = local.common_tags
 }
 
 resource "azurerm_subnet_network_security_group_association" "avd_servers_nsg_association" {
@@ -64,10 +55,7 @@ resource "azurerm_virtual_desktop_host_pool" "avd-host_pool" {
   maximum_sessions_allowed = 2
   custom_rdp_properties    = "enablecredsspsupport:i:1;enablerdsaadauth:i:1;videoplaybackmode:i:1;audiomode:i:0;devicestoredirect:s:*;drivestoredirect:s:*;redirectclipboard:i:1;redirectcomports:i:1;redirectprinters:i:1;redirectsmartcards:i:1;redirectwebauthn:i:1;usbdevicestoredirect:s:*;use multimon:i:1; targetisaadjoined:i:1"
   depends_on               = [azurerm_windows_virtual_machine.session_host]
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                     = local.common_tags
 }
 
 resource "azurerm_virtual_desktop_application_group" "avd-appgroup" {
@@ -79,10 +67,7 @@ resource "azurerm_virtual_desktop_application_group" "avd-appgroup" {
   type                = "Desktop"
   host_pool_id        = azurerm_virtual_desktop_host_pool.avd-host_pool[0].id
   depends_on          = [azurerm_virtual_desktop_host_pool.avd-host_pool]
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                = local.common_tags
 }
 
 resource "azurerm_virtual_desktop_workspace" "avd-workspace" {
@@ -94,10 +79,7 @@ resource "azurerm_virtual_desktop_workspace" "avd-workspace" {
 
   friendly_name = local.workspace_name
   description   = "A description of my ${local.workspace_name} workspace"
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags          = local.common_tags
 }
 
 resource "azurerm_virtual_desktop_workspace_application_group_association" "workspacedesktop" {
@@ -130,10 +112,7 @@ resource "azurerm_virtual_machine_extension" "aad_login" {
     azurerm_windows_virtual_machine.session_host
   ]
   provider = azurerm.landingzoneavd
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags     = local.common_tags
 }
 
 
@@ -169,10 +148,7 @@ PROTECTED_SETTINGS
     azurerm_virtual_desktop_host_pool.avd-host_pool
   ]
   provider = azurerm.landingzoneavd
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags     = local.common_tags
 }
 
 resource "azurerm_windows_virtual_machine" "session_host" {
@@ -200,10 +176,7 @@ resource "azurerm_windows_virtual_machine" "session_host" {
   }
   depends_on = [azurerm_network_interface.avd-host_pool-nic]
   provider   = azurerm.landingzoneavd
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags       = local.common_tags
 }
 
 resource "azurerm_network_interface" "avd-host_pool-nic" {
@@ -218,10 +191,7 @@ resource "azurerm_network_interface" "avd-host_pool-nic" {
   }
   depends_on = [azurerm_subnet.avd-subnet]
   provider   = azurerm.landingzoneavd
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags       = local.common_tags
 }
 
 

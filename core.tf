@@ -2,20 +2,14 @@ resource "azurerm_resource_group" "rg_shared" {
   name     = local.rg_shared_name
   location = local.corelocation
   provider = azurerm.connectivity
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags     = local.common_tags
 }
 
 resource "azurerm_resource_group" "rg_dnszones" {
   name     = local.rg_dnszones_name
   location = local.corelocation
   provider = azurerm.connectivity
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags     = local.common_tags
 }
 
 resource "azurerm_virtual_network" "vnet" {
@@ -24,10 +18,7 @@ resource "azurerm_virtual_network" "vnet" {
   resource_group_name = azurerm_resource_group.rg_shared.name
   address_space       = local.shared_vnet_address_space
   provider            = azurerm.connectivity
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                = local.common_tags
 }
 
 resource "azurerm_subnet" "vpn_gateway" {
@@ -67,10 +58,7 @@ resource "azurerm_network_security_group" "dns_nsg" {
   name                = "dns-nsg"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                = local.common_tags
 }
 
 resource "azurerm_subnet_network_security_group_association" "dnsoutbound_nsg_association" {
@@ -122,7 +110,7 @@ resource "azurerm_network_security_group" "core_bastion_nsg" {
   name                = "core-bastion-nsg"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
-  
+
   # Inbound rules required by Azure Bastion
   security_rule {
     name                       = "AllowHttpsInBound"
@@ -221,10 +209,7 @@ resource "azurerm_network_security_group" "core_bastion_nsg" {
     destination_address_prefix = "Internet"
   }
 
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 resource "azurerm_subnet_network_security_group_association" "core_bastion_nsg_association" {
@@ -238,10 +223,7 @@ resource "azurerm_network_security_group" "servers_nsg" {
   name                = "servers-nsg"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                = local.common_tags
 }
 
 resource "azurerm_subnet_network_security_group_association" "servers_nsg_association" {
@@ -258,10 +240,7 @@ resource "azurerm_public_ip" "vpn_gateway_ip" {
   allocation_method   = "Static" # VPN Gateways typically use dynamically allocated IPs
   sku                 = "Standard"
   provider            = azurerm.connectivity
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                = local.common_tags
 }
 
 resource "azurerm_virtual_network_gateway" "vpn_gateway" {
@@ -288,28 +267,22 @@ resource "azurerm_virtual_network_gateway" "vpn_gateway" {
   }
   depends_on = [azurerm_public_ip.vpn_gateway_ip,
   azurerm_subnet.vpn_gateway]
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 resource "azurerm_public_ip" "firewall_public_ip" {
-  count = local.enableaf ? 1 : 0 # Resource is created if the variable is true
+  count               = local.enableaf ? 1 : 0 # Resource is created if the variable is true
   name                = "firewall-public-ip"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
   allocation_method   = "Static"
   sku                 = "Standard"
   provider            = azurerm.connectivity
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                = local.common_tags
 }
 
 resource "azurerm_firewall" "firewall" {
-  count = local.enableaf ? 1 : 0 # Resource is created if the variable is true
+  count               = local.enableaf ? 1 : 0 # Resource is created if the variable is true
   name                = "azure-firewall"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
@@ -323,29 +296,23 @@ resource "azurerm_firewall" "firewall" {
     subnet_id            = azurerm_subnet.firewall.id
     public_ip_address_id = azurerm_public_ip.firewall_public_ip[0].id
   }
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 resource "azurerm_firewall_policy" "firewall_policy" {
-  count = local.enableaf ? 1 : 0 # Resource is created if the variable is true    
+  count               = local.enableaf ? 1 : 0 # Resource is created if the variable is true    
   name                = "firewall-policy"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
   provider            = azurerm.connectivity
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags                = local.common_tags
 }
 
 
 # Create coreVM
 
 resource "azurerm_network_interface" "corevm_nic" {
-  count = local.enablevms ? 1 : 0 # Resource is created if the variable is true
+  count               = local.enablevms ? 1 : 0 # Resource is created if the variable is true
   provider            = azurerm.connectivity
   name                = "${local.corevmname}-nic"
   location            = azurerm_resource_group.rg_shared.location
@@ -356,21 +323,18 @@ resource "azurerm_network_interface" "corevm_nic" {
     subnet_id                     = azurerm_subnet.general_servers.id
     private_ip_address_allocation = "Dynamic"
   }
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 resource "azurerm_windows_virtual_machine" "corevm" {
-  count = local.enablevms ? 1 : 0 # Resource is created if the variable is true
-  provider            = azurerm.connectivity
-  name                = local.corevmname
-  location            = azurerm_resource_group.rg_shared.location
-  resource_group_name = azurerm_resource_group.rg_shared.name
-  size                = "Standard_B2s" # Adjust the VM size as needed
-  admin_username      = local.vm_admin_username
-  admin_password      = local.vm_admin_password # Use a strong and secure password
+  count                 = local.enablevms ? 1 : 0 # Resource is created if the variable is true
+  provider              = azurerm.connectivity
+  name                  = local.corevmname
+  location              = azurerm_resource_group.rg_shared.location
+  resource_group_name   = azurerm_resource_group.rg_shared.name
+  size                  = "Standard_B2s" # Adjust the VM size as needed
+  admin_username        = local.vm_admin_username
+  admin_password        = local.vm_admin_password # Use a strong and secure password
   network_interface_ids = [azurerm_network_interface.corevm_nic[0].id]
 
   os_disk {
@@ -386,10 +350,7 @@ resource "azurerm_windows_virtual_machine" "corevm" {
     version   = "latest"
   }
 
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 resource "azurerm_public_ip" "core_bastion_ip" {
@@ -401,10 +362,7 @@ resource "azurerm_public_ip" "core_bastion_ip" {
   allocation_method   = "Static"
   sku                 = "Standard"
 
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
 
 resource "azurerm_bastion_host" "core_bastion" {
@@ -421,8 +379,5 @@ resource "azurerm_bastion_host" "core_bastion" {
     public_ip_address_id = azurerm_public_ip.core_bastion_ip[0].id
   }
 
-  tags = {
-    Environment = "Demo"
-    EnvName     = "HUB-Spoke Azure Demo"
-  }
+  tags = local.common_tags
 }
