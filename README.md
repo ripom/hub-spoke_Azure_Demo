@@ -201,13 +201,15 @@ The deployment is **fully modular** and controlled by four feature flags:
 - Deployed in Hub VNet (Connectivity subscription)
 
 #### `enableatm = true` - Azure Traffic Manager (~$5-10/month)
-- **Traffic Manager Profile** - DNS-based global load balancing
+- **Traffic Manager Profile** - DNS-based global load balancing for Front Door outage simulation/testing
 - **3 External Endpoints**:
   - Azure Front Door (enabled, priority 1)
   - Application Gateway Primary (disabled, priority 2)
   - Application Gateway DR (disabled, priority 3)
 - Performance-based routing
 - Deployed in rg-core (Connectivity subscription)
+- **Purpose**: Simulate and test Azure Front Door outages by routing traffic to Application Gateways
+- **Use Case**: Disaster recovery testing and failover validation
 
 #### `enablevms = true` - Virtual Machines (~$150-200/month)
 - **Test VMs** in Hub and both Spoke VNets (Windows Server)
@@ -277,11 +279,56 @@ https://client.wvd.microsoft.com/
 # Sign in with Azure AD credentials
 ```
 
+### Azure Traffic Manager (Front Door Outage Simulation)
+
+> **⚠️ IMPORTANT**: Azure Traffic Manager is designed to simulate and test Azure Front Door outages by providing DNS-based failover to Application Gateways.
+
+**Enable Traffic Manager:**
+Set `enableatm = true` in your `terraform.tfvars` file and apply the configuration.
+
+**Testing Traffic Manager with Custom Host Header:**
+
+Traffic Manager requires the correct Host header to route requests to the backend. Use one of these methods:
+
+**Method 1 - PowerShell (Recommended):**
+```powershell
+# Test Traffic Manager with custom Host header
+(Invoke-WebRequest -Uri "http://tm-demo-XXXXX.trafficmanager.net" `
+  -Headers @{ Host = "my-front-door01-endpoint-XXXXX.azurefd.net" }).Content
+
+# Replace:
+# - tm-demo-XXXXX.trafficmanager.net with your Traffic Manager FQDN
+# - my-front-door01-endpoint-XXXXX.azurefd.net with your Front Door endpoint hostname
+```
+
+**Method 2 - Browser Extension:**
+Use a browser extension like **ModHeader** (Chrome/Edge) or **Modify Header Value** (Firefox) to:
+1. Install the extension
+2. Add a custom header: `Host: my-front-door01-endpoint-XXXXX.azurefd.net`
+3. Navigate to: `http://tm-demo-XXXXX.trafficmanager.net`
+4. The extension will inject the Host header automatically
+
+**Method 3 - cURL:**
+```bash
+curl -H "Host: my-front-door01-endpoint-XXXXX.azurefd.net" http://tm-demo-XXXXX.trafficmanager.net
+```
+
+**What This Tests:**
+- Traffic Manager DNS resolution and routing
+- Failover capability when Front Door endpoint is disabled
+- Application Gateway backend connectivity
+- DR scenario validation
+
+**Simulating Front Door Outage:**
+1. Disable the Front Door endpoint in Traffic Manager (set `enabled = false`)
+2. Traffic automatically fails over to Application Gateway endpoints
+3. Test the same URLs to verify failover works correctly
+
 For comprehensive testing procedures, see [Use Cases](docs/USECASES.md).
 
 ---
 
-## �️ Troubleshooting
+## 🛠️ Troubleshooting
 
 ### Common Issues
 
