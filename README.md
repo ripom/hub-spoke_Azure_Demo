@@ -46,8 +46,9 @@ This Terraform configuration deploys a production-ready hub-and-spoke topology a
 - Private DNS Zones
 
 **Hub/Shared Services (Optional Components):**
-- Azure Firewall (`enableresource=true`)
+- Azure Firewall (`enableaf=true`)
 - Azure Front Door (`enableresource=true`)
+- Azure Traffic Manager (`enableatm=true`)
 - VPN Gateway (`onpremises=true`)
 - Windows VM + Azure Bastion (`enablevms=true`)
 
@@ -130,6 +131,8 @@ enablevms                           = true   # Virtual machines
 avdenabled                          = false  # Azure Virtual Desktop
 onpremises                          = false  # On-premises simulation and VPN
 mlenabled                           = true   # Machine Learning workspace
+enableaf                            = true   # Azure Firewall
+enableatm                           = false  # Azure Traffic Manager
 ```
 
 > **⚠️ Security Warning**: Never commit `terraform.tfvars` to source control!
@@ -189,9 +192,22 @@ The deployment is **fully modular** and controlled by four feature flags:
 - **App Services** (Primary + DR) with VNet integration
 - **Application Gateways** (Primary + DR) with WAF
 - **Azure Front Door** - Global load balancer
-- **Azure Firewall** - Network security appliance
 - **Storage Accounts** (Primary + DR)
 - **Private Endpoints** - For SQL, Storage, and App Services
+
+#### `enableaf = true` - Azure Firewall (~$200-250/month)
+- **Azure Firewall** - Network security appliance with policy
+- Centralized network traffic inspection and filtering
+- Deployed in Hub VNet (Connectivity subscription)
+
+#### `enableatm = true` - Azure Traffic Manager (~$5-10/month)
+- **Traffic Manager Profile** - DNS-based global load balancing
+- **3 External Endpoints**:
+  - Azure Front Door (enabled, priority 1)
+  - Application Gateway Primary (disabled, priority 2)
+  - Application Gateway DR (disabled, priority 3)
+- Performance-based routing
+- Deployed in rg-core (Connectivity subscription)
 
 #### `enablevms = true` - Virtual Machines (~$150-200/month)
 - **Test VMs** in Hub and both Spoke VNets (Windows Server)

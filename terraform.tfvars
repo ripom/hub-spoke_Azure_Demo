@@ -14,3 +14,4 @@ avdenabled                          = false
 onpremises                          = false
 mlenabled                           = false
 enableaf                            = false
+enableatm                           = false

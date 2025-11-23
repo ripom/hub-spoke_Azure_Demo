@@ -3,6 +3,7 @@ locals {
   enablevms                                       = var.enablevms
   mlenabled                                       = var.mlenabled
   enableaf                                        = var.enableaf
+  enableatm                                       = var.enableatm
 
   corelocation                                    = "uksouth"
 

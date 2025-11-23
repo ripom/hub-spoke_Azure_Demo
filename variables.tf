@@ -73,3 +73,9 @@ variable "enableaf" {
   description = "Enable or disable the deployment of Azure Firewall."
   default     = true
 }
+
+variable "enableatm" {
+  type        = bool
+  description = "Enable or disable the deployment of Azure Traffic Manager."
+  default     = false
+}
