@@ -229,7 +229,35 @@ resource "azurerm_virtual_machine_run_command" "dns_setup" {
       Install-WindowsFeature -Name DNS -IncludeManagementTools
       Add-DnsServerPrimaryZone -Name "contoso.local" -ZoneFile "contoso.local.dns" -DynamicUpdate Secure
       Add-DnsServerResourceRecordA -Name "www" -ZoneName "contoso.local" -IPv4Address "${azurerm_windows_virtual_machine.dnsserver_vm[0].private_ip_address}" -TimeToLive 01:00:00
+      
+      # Add conditional forwarders for all Azure services (without privatelink prefix)
       Add-DnsServerConditionalForwarderZone -Name "database.windows.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "blob.core.windows.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "file.core.windows.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "queue.core.windows.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "table.core.windows.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "web.core.windows.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "redis.cache.windows.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "postgres.database.azure.com" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "mysql.database.azure.com" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "documents.azure.com" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "managedhsm.azure.com" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "vault.azure.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "servicebus.windows.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "eventgrid.azure.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "azurecr.io" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "azureedge.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "azure-api.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "azurewebsites.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "search.windows.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "monitor.azure.com" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "api.azureml.ms" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "notebooks.azure.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "cert.api.azureml.ms" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "ml.azure.net" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      Add-DnsServerConditionalForwarderZone -Name "inference.ml.azure.com" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
+      
+      # Configure firewall rules for DNS
       New-NetFirewallRule -DisplayName "Allow DNS Inbound" -Direction Inbound -Protocol UDP -LocalPort 53 -Action Allow
       New-NetFirewallRule -DisplayName "Allow DNS Inbound" -Direction Inbound -Protocol TCP -LocalPort 53 -Action Allow
       Restart-Service -Name DNS
