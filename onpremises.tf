@@ -45,92 +45,6 @@ resource "azurerm_subnet_network_security_group_association" "dnsserver_nsg_asso
   provider                  = azurerm.landingzonecorp
 }
 
-resource "azurerm_subnet" "azurebastion_subnet" {
-  count                = var.onpremises ? 1 : 0
-  provider             = azurerm.landingzonecorp
-  name                 = "AzureBastionSubnet"
-  virtual_network_name = azurerm_virtual_network.onpremises_vnet[0].name
-  resource_group_name  = azurerm_resource_group.rg_onpremises[0].name
-  address_prefixes     = local.azurebastion_subnet_prefixes
-}
-
-resource "azurerm_network_security_group" "bastion_nsg" {
-  count               = var.onpremises ? 1 : 0
-  name                = "bastion-nsg"
-  location            = azurerm_resource_group.rg_onpremises[0].location
-  resource_group_name = azurerm_resource_group.rg_onpremises[0].name
-  provider            = azurerm.landingzonecorp
-
-  # Additional Rules from Uploaded Image
-  security_rule {
-    name                       = "AllowSshOutbound"
-    priority                   = 100
-    direction                  = "Outbound"
-    access                     = "Allow"
-    protocol                   = "*"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "VirtualNetwork"
-  }
-
-  security_rule {
-    name                       = "AllowRdpOutbound"
-    priority                   = 110
-    direction                  = "Outbound"
-    access                     = "Allow"
-    protocol                   = "*"
-    source_port_range          = "*"
-    destination_port_range     = "3389"
-    source_address_prefix      = "*"
-    destination_address_prefix = "VirtualNetwork"
-  }
-
-  security_rule {
-    name                       = "AllowAzureLoadBalancerInbound"
-    priority                   = 200
-    direction                  = "Outbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "443"
-    source_address_prefix      = "*"
-    destination_address_prefix = "AzureCloud"
-  }
-
-  security_rule {
-    name                       = "AllowGatewayManager"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "*"
-    source_port_range          = "*"
-    destination_port_range     = "443"
-    source_address_prefix      = "GatewayManager"
-    destination_address_prefix = "*"
-  }
-
-  security_rule {
-    name                       = "AllowHttpsInBound"
-    priority                   = 200
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "*"
-    source_port_range          = "*"
-    destination_port_range     = "443"
-    source_address_prefix      = "GatewayManager"
-    destination_address_prefix = "*"
-  }
-  tags = local.common_tags
-}
-
-resource "azurerm_subnet_network_security_group_association" "bastion_nsg_association" {
-  count                     = var.onpremises ? 1 : 0
-  subnet_id                 = azurerm_subnet.azurebastion_subnet[0].id
-  network_security_group_id = azurerm_network_security_group.bastion_nsg[0].id
-  provider                  = azurerm.landingzonecorp
-}
-
 resource "azurerm_subnet" "vpn_gatewayonprem" {
   count                = var.onpremises ? 1 : 0
   provider             = azurerm.landingzonecorp
@@ -171,6 +85,7 @@ resource "azurerm_virtual_network_gateway" "vpn_gatewayonprem" {
   }
   tags = local.common_tags
 }
+
 
 
 # Network Interface for DNS Server VM
@@ -258,39 +173,16 @@ resource "azurerm_virtual_machine_run_command" "dns_setup" {
       Add-DnsServerConditionalForwarderZone -Name "inference.ml.azure.com" -MasterServers "${azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address}" -PassThru
       
       # Configure firewall rules for DNS
-      New-NetFirewallRule -DisplayName "Allow DNS Inbound" -Direction Inbound -Protocol UDP -LocalPort 53 -Action Allow
-      New-NetFirewallRule -DisplayName "Allow DNS Inbound" -Direction Inbound -Protocol TCP -LocalPort 53 -Action Allow
+      New-NetFirewallRule -DisplayName "Allow DNS Inbound UDP" -Direction Inbound -Protocol UDP -LocalPort 53 -Action Allow
+      New-NetFirewallRule -DisplayName "Allow DNS Inbound TCP" -Direction Inbound -Protocol TCP -LocalPort 53 -Action Allow
+      
+      # Allow all outbound traffic
+      Set-NetFirewallProfile -Profile Domain,Public,Private -DefaultOutboundAction Allow
+      
       Restart-Service -Name DNS
     EOT
   }
   tags = local.common_tags
-}
-
-resource "azurerm_public_ip" "azurebastion_ip" {
-  count               = var.onpremises && local.enablevms ? 1 : 0
-  provider            = azurerm.landingzonecorp
-  name                = local.azurebastion_ip_name
-  resource_group_name = azurerm_resource_group.rg_onpremises[0].name
-  location            = azurerm_resource_group.rg_onpremises[0].location
-  sku                 = "Standard"
-  allocation_method   = "Static"
-  tags                = local.common_tags
-}
-
-resource "azurerm_bastion_host" "azure_bastion" {
-  count               = var.onpremises && local.enablevms ? 1 : 0
-  provider            = azurerm.landingzonecorp
-  name                = local.azurebastion_name
-  resource_group_name = azurerm_resource_group.rg_onpremises[0].name
-  location            = azurerm_resource_group.rg_onpremises[0].location
-  sku                 = "Standard"
-  ip_configuration {
-    name                 = "azurebastion-ipconfig"
-    subnet_id            = azurerm_subnet.azurebastion_subnet[0].id
-    public_ip_address_id = azurerm_public_ip.azurebastion_ip[0].id
-  }
-  ip_connect_enabled = true
-  tags               = local.common_tags
 }
 
 resource "azurerm_virtual_network_gateway_connection" "vnet_to_vnet_connection" {

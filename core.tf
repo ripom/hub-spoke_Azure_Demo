@@ -309,6 +309,8 @@ resource "azurerm_firewall_policy" "firewall_policy" {
 }
 
 
+
+
 # Create coreVM
 
 resource "azurerm_network_interface" "corevm_nic" {

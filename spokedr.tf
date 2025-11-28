@@ -14,11 +14,8 @@ resource "azurerm_virtual_network" "spokedr_vnet" {
   address_space       = local.spokedr_vnet_address_space
 
   # Define custom DNS servers here
-  dns_servers = (
-    length(azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint) > 0 && local.enableresource
-    ? [azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address]
-    : []
-  )
+  dns_servers = [azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address]
+
   tags = local.common_tags
 }
 

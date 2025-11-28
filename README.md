@@ -32,6 +32,7 @@ terraform apply
 | **[Prerequisites](docs/PREREQUISITES.md)** | Required tools, subscriptions, and permissions |
 | **[Usage Guide](docs/USAGE.md)** | Configuration parameters and deployment steps |
 | **[Use Cases](docs/USECASES.md)** | Deployment scenarios from minimal to full production |
+| **[ML Testing Guide](docs/ML_TESTING.md)** | Testing Azure Machine Learning workspace and compute |
 
 ---
 
@@ -50,7 +51,7 @@ This Terraform configuration deploys a production-ready hub-and-spoke topology a
 - Azure Front Door (`enableresource=true`)
 - Azure Traffic Manager (`enableatm=true`)
 - VPN Gateway (`onpremises=true`)
-- Windows VM + Azure Bastion (`enablevms=true`)
+- Windows VM + Azure Bastion with IP-based connectivity (`enablevms=true`) - Single Bastion for all VNets
 
 **Spoke Workloads (Always Deployed):**
 - Primary Spoke VNet (10.10.0.0/16)
@@ -81,7 +82,7 @@ This deployment follows the **Azure Landing Zone pattern** with separate subscri
 | Subscription | Purpose | Resources Deployed |
 |--------------|---------|-------------------|
 | **Management** | Platform management (optional - not used in this demo) | Reserved for future management services |
-| **Connectivity** | Network hub, shared services, and DNS | Hub VNet, VPN Gateway, Azure Firewall, Azure Bastion, **Azure Front Door**, On-Premises simulation, **DNS Private Resolver, Private DNS Zones, DNS Forwarding Ruleset** |
+| **Connectivity** | Network hub, shared services, and DNS | Hub VNet, VPN Gateway, Azure Firewall, **Azure Bastion (IP-based)**, **Azure Front Door**, On-Premises simulation, **DNS Private Resolver, Private DNS Zones, DNS Forwarding Ruleset** |
 | **Landing Zone Corp** | Application workloads | Spoke VNets, SQL Databases, App Services, Application Gateways, Storage Accounts |
 | **Landing Zone AVD** | Virtual Desktop Infrastructure | AVD VNet, Host Pool, Session Hosts, Application Groups, Workspace |
 
@@ -165,7 +166,7 @@ See [Use Cases](docs/USECASES.md) for detailed scenario configurations.
 - **Private Endpoints** - All PaaS services accessible only via private IPs
 - **Azure Firewall** - Centralized network security and traffic inspection
 - **Network Security Groups** - Subnet-level traffic filtering
-- **Azure Bastion** - Secure VM access without public IPs
+- **Azure Bastion** - Secure VM access with IP-based connectivity to all VNets (no public IPs on VMs)
 - **Storage OAuth Authentication** - Azure AD-based storage access
 - **SQL Authentication** - Both SQL and Entra ID authentication supported
 - **Multi-Subscription Design** - Isolation following Azure Landing Zone pattern
@@ -213,7 +214,7 @@ The deployment is **fully modular** and controlled by four feature flags:
 
 #### `enablevms = true` - Virtual Machines (~$150-200/month)
 - **Test VMs** in Hub and both Spoke VNets (Windows Server)
-- **Azure Bastion hosts** in Hub and On-Premises (if enabled)
+- **Azure Bastion host** in Hub (IP-based connectivity for all VNets)
 - Enables secure VM access without public IPs
 
 #### `avdenabled = true` - Azure Virtual Desktop (~$300-400/month)
@@ -228,19 +229,23 @@ The deployment is **fully modular** and controlled by four feature flags:
 - **On-premises VNet** simulation (10.200.0.0/16)
 - **VPN Gateways** (Hub and On-premises) - Site-to-site VPN
 - **DNS Server VM** - Windows Server with contoso.local zone
-- **Azure Bastion** - Secure access to on-premises VMs
 - **VNet-to-VNet Connection** - Encrypted tunnel
 - **DNS Forwarding Ruleset** - Conditional DNS forwarding
+- Access via Hub Bastion using IP-based connectivity
 
 #### `mlenabled = true` - Machine Learning (~$150-250/month)
-- **ML VNet** (10.30.0.0/16) with subnets for VMs and private endpoints
+- **ML VNet** (10.40.0.0/16) with subnets for VMs and private endpoints
 - **Azure Machine Learning Workspace** with private network access
+- **Compute Cluster** (`cpu-cluster`) - Auto-scaling 0-2 nodes (STANDARD_DS2_V2, LowPriority) for cost-effective training
+- **Compute Instance** (`ml-compute-instance`) - STANDARD_DS2_V2 for development and notebooks (remember to stop when not in use!)
 - **Storage Account** with blob and file private endpoints
-- **Key Vault** with private endpoint
-- **Container Registry** (Premium) with private endpoint
-- **Application Insights** for workspace monitoring
+- **Key Vault** with private endpoint for secrets and certificates
+- **Container Registry** (Premium) with private endpoint for ML images
+- **Application Insights** for workspace monitoring and logging
+- **Datastore** - Blob storage for ML datasets and artifacts
 - **Windows VM** in ML VNet (if `enablevms=true`)
 - VNet peering to Hub
+- See [ML Testing Guide](docs/ML_TESTING.md) for detailed testing instructions
 
 ---
 
@@ -272,7 +277,23 @@ az network public-ip show --resource-group rg-spoke --name app-gateway-ip --quer
 curl http://<app-gateway-ip>
 ```
 
-### Azure Virtual Desktop
+### Azure Machine Learning Workspace
+```bash
+# Verify ML workspace
+az ml workspace show --resource-group <ML_RESOURCE_GROUP> --name <ML_WORKSPACE_NAME>
+
+# List compute resources
+az ml compute list --resource-group <ML_RESOURCE_GROUP> --workspace-name <ML_WORKSPACE_NAME>
+
+# Submit test training job
+az ml job create --file ml_samples/job.yml \
+  --resource-group <ML_RESOURCE_GROUP> \
+  --workspace-name <ML_WORKSPACE_NAME>
+```
+
+For comprehensive ML testing including notebooks, compute instances, and model training, see the **[ML Testing Guide](docs/ML_TESTING.md)**.
+
+---### Azure Virtual Desktop
 ```
 # Access AVD
 https://client.wvd.microsoft.com/

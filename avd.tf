@@ -12,9 +12,13 @@ resource "azurerm_virtual_network" "avd-vnet" {
   location            = azurerm_resource_group.avd-rg[0].location
   resource_group_name = azurerm_resource_group.avd-rg[0].name
   address_space       = local.avdvnet-address_space
-  provider            = azurerm.landingzoneavd
-  depends_on          = [azurerm_resource_group.avd-rg]
-  tags                = local.common_tags
+
+  # Define custom DNS servers here
+  dns_servers = [azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address]
+
+  provider   = azurerm.landingzoneavd
+  depends_on = [azurerm_resource_group.avd-rg]
+  tags       = local.common_tags
 }
 
 resource "azurerm_subnet" "avd-subnet" {
@@ -42,7 +46,6 @@ resource "azurerm_subnet_network_security_group_association" "avd_servers_nsg_as
   subnet_id                 = azurerm_subnet.avd-subnet[0].id
   network_security_group_id = azurerm_network_security_group.avd_servers_nsg[0].id
 }
-
 
 resource "azurerm_virtual_desktop_host_pool" "avd-host_pool" {
   count                    = var.avdenabled ? 1 : 0

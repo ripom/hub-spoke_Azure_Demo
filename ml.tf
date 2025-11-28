@@ -14,6 +14,9 @@ resource "azurerm_virtual_network" "ml_vnet" {
   resource_group_name = azurerm_resource_group.rg_ml.name
   address_space       = local.ml_vnet_address_space
 
+  # Define custom DNS servers here
+  dns_servers = [azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address]
+
   tags = local.common_tags
 }
 
@@ -340,3 +343,66 @@ resource "azurerm_windows_virtual_machine" "ml_vm" {
 
   tags = local.common_tags
 }
+
+# ML Compute Cluster for Training
+resource "azurerm_machine_learning_compute_cluster" "ml_compute_cluster" {
+  count                         = local.mlenabled ? 1 : 0
+  provider                      = azurerm.landingzonecorp
+  name                          = "cpu-cluster"
+  location                      = azurerm_resource_group.rg_ml.location
+  machine_learning_workspace_id = azurerm_machine_learning_workspace.ml_workspace[0].id
+  vm_priority                   = "LowPriority"
+  vm_size                       = "STANDARD_DS2_V2"
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  scale_settings {
+    min_node_count                       = 0
+    max_node_count                       = 2
+    scale_down_nodes_after_idle_duration = "PT120S" # 2 minutes
+  }
+
+  subnet_resource_id = azurerm_subnet.ml_vms_subnet.id
+
+  tags = local.common_tags
+
+  depends_on = [
+    azurerm_machine_learning_workspace.ml_workspace,
+    azurerm_private_endpoint.ml_workspace_pe,
+    azurerm_virtual_network.ml_vnet,
+    azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint,
+    azurerm_private_dns_resolver_outbound_endpoint.private_dns_resolver_outbound_endpoint,
+    azurerm_private_dns_zone_virtual_network_link.dns-zone-to-vnet-link
+  ]
+}
+
+# ML Compute Instance for Development/Notebooks
+resource "azurerm_machine_learning_compute_instance" "ml_compute_instance" {
+  count                         = local.mlenabled ? 1 : 0
+  provider                      = azurerm.landingzonecorp
+  name                          = "ml-dev-instance"
+  machine_learning_workspace_id = azurerm_machine_learning_workspace.ml_workspace[0].id
+  virtual_machine_size          = "STANDARD_DS2_V2"
+  authorization_type            = "personal"
+  node_public_ip_enabled        = false
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  subnet_resource_id = azurerm_subnet.ml_vms_subnet.id
+
+  tags = local.common_tags
+
+  depends_on = [
+    azurerm_machine_learning_workspace.ml_workspace,
+    azurerm_private_endpoint.ml_workspace_pe,
+    azurerm_virtual_network.ml_vnet,
+    azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint,
+    azurerm_private_dns_resolver_outbound_endpoint.private_dns_resolver_outbound_endpoint,
+    azurerm_private_dns_zone_virtual_network_link.dns-zone-to-vnet-link
+  ]
+}
+
