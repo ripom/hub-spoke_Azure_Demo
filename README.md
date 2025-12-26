@@ -22,6 +22,24 @@ terraform plan
 terraform apply
 ```
 
+## 🧹 Cleanup
+
+To remove all resources created by this deployment, use the standard Terraform destroy command:
+
+```bash
+terraform destroy
+```
+
+If the destroy command fails or leaves some resources behind, you can manually delete the following resource groups:
+
+- `rg-spoke`
+- `rg-spoke-dr`
+- `rg-core`
+- `rg-dnszones`
+- `rg-ml`
+- `rg-onpremises`
+- `rg-avd`
+
 ---
 
 ## 📚 Documentation
@@ -33,6 +51,7 @@ terraform apply
 | **[Usage Guide](docs/USAGE.md)** | Configuration parameters and deployment steps |
 | **[Use Cases](docs/USECASES.md)** | Deployment scenarios from minimal to full production |
 | **[ML Testing Guide](docs/ML_TESTING.md)** | Testing Azure Machine Learning workspace and compute |
+| **[Troubleshooting](docs/TROUBLESHOOTING.md)** | Common issues and fixes for Web App, SQL, and ML |
 
 ---
 

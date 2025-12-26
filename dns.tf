@@ -18,7 +18,6 @@ resource "azurerm_private_dns_zone" "private_dns_zone" {
     zone15 = "privatelink.azurecr.io"
     zone16 = "privatelink.azureedge.net"
     zone17 = "privatelink.azure-api.net"
-    zone18 = "privatelink.azurewebsites.net"
     zone19 = "privatelink.search.windows.net"
     zone20 = "privatelink.monitor.azure.com"
     zone21 = "privatelink.api.azureml.ms"
@@ -53,7 +52,6 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dns-zone-to-vnet-link"
     zone15 = "privatelink.azurecr.io"
     zone16 = "privatelink.azureedge.net"
     zone17 = "privatelink.azure-api.net"
-    zone18 = "privatelink.azurewebsites.net"
     zone19 = "privatelink.search.windows.net"
     zone20 = "privatelink.monitor.azure.com"
     zone21 = "privatelink.api.azureml.ms"
@@ -79,7 +77,7 @@ resource "azurerm_private_dns_resolver" "dns_private_resolver" {
   location            = azurerm_resource_group.rg_dnszones.location
   virtual_network_id  = azurerm_virtual_network.vnet.id
   provider            = azurerm.connectivity
-  depends_on          = [azurerm_virtual_network.vnet]
+  depends_on          = [azurerm_virtual_network.vnet, azurerm_subnet_network_security_group_association.servers_nsg_association]
   tags                = local.common_tags
 }
 

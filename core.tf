@@ -59,6 +59,18 @@ resource "azurerm_network_security_group" "dns_nsg" {
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
   tags                = local.common_tags
+
+  security_rule {
+    name                       = "AllowDNSInbound"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "53"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
 }
 
 resource "azurerm_subnet_network_security_group_association" "dnsoutbound_nsg_association" {
@@ -87,6 +99,7 @@ resource "azurerm_subnet_network_security_group_association" "dnsinbound_nsg_ass
   provider                  = azurerm.connectivity
   subnet_id                 = azurerm_subnet.dns_private_resolver_inbound.id
   network_security_group_id = azurerm_network_security_group.dns_nsg.id
+  depends_on                = [azurerm_subnet_network_security_group_association.dnsoutbound_nsg_association]
 }
 
 resource "azurerm_subnet" "general_servers" {
@@ -216,6 +229,7 @@ resource "azurerm_subnet_network_security_group_association" "core_bastion_nsg_a
   provider                  = azurerm.connectivity
   subnet_id                 = azurerm_subnet.core_bastion_subnet.id
   network_security_group_id = azurerm_network_security_group.core_bastion_nsg.id
+  depends_on                = [azurerm_subnet_network_security_group_association.dnsinbound_nsg_association]
 }
 
 resource "azurerm_network_security_group" "servers_nsg" {
@@ -230,10 +244,11 @@ resource "azurerm_subnet_network_security_group_association" "servers_nsg_associ
   provider                  = azurerm.connectivity
   subnet_id                 = azurerm_subnet.general_servers.id
   network_security_group_id = azurerm_network_security_group.servers_nsg.id
+  depends_on                = [azurerm_subnet_network_security_group_association.core_bastion_nsg_association]
 }
 
 resource "azurerm_public_ip" "vpn_gateway_ip" {
-  count               = var.onpremises ? 1 : 0
+  count               = var.onpremises || !local.enableaf ? 1 : 0
   name                = "vpngateway-public-ip"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
@@ -244,7 +259,7 @@ resource "azurerm_public_ip" "vpn_gateway_ip" {
 }
 
 resource "azurerm_virtual_network_gateway" "vpn_gateway" {
-  count               = var.onpremises ? 1 : 0
+  count               = var.onpremises || !local.enableaf ? 1 : 0
   name                = "vpngateway"
   location            = azurerm_resource_group.rg_shared.location
   resource_group_name = azurerm_resource_group.rg_shared.name
@@ -306,6 +321,112 @@ resource "azurerm_firewall_policy" "firewall_policy" {
   resource_group_name = azurerm_resource_group.rg_shared.name
   provider            = azurerm.connectivity
   tags                = local.common_tags
+}
+
+resource "azurerm_firewall_policy_rule_collection_group" "firewall_policy_rule_collection_group" {
+  count              = local.enableaf ? 1 : 0
+  name               = "firewall-policy-rule-collection-group"
+  firewall_policy_id = azurerm_firewall_policy.firewall_policy[0].id
+  priority           = 100
+  provider           = azurerm.connectivity
+
+  network_rule_collection {
+    name     = "network-rules"
+    priority = 100
+    action   = "Allow"
+
+    rule {
+      name                  = "AllowDNS"
+      protocols             = ["UDP", "TCP"]
+      source_addresses      = concat(local.shared_vnet_address_space, local.spoke_vnet_address_space, local.spokedr_vnet_address_space, local.avdvnet-address_space, local.ml_vnet_address_space)
+      destination_addresses = [azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address]
+      destination_ports     = ["53"]
+    }
+
+    rule {
+      name                  = "AllowDNSOutbound"
+      protocols             = ["UDP", "TCP"]
+      source_addresses      = local.dns_private_resolver_outbound_subnet_prefixes
+      destination_addresses = [local.dnsserver_ip]
+      destination_ports     = ["53"]
+    }
+
+    rule {
+      name                  = "AllowDNSResolverRecursive"
+      protocols             = ["UDP", "TCP"]
+      source_addresses      = concat(local.dns_private_resolver_inbound_subnet_prefixes, local.dns_private_resolver_outbound_subnet_prefixes)
+      destination_addresses = ["*"]
+      destination_ports     = ["53"]
+    }
+
+    rule {
+      name                  = "AllowRDP"
+      protocols             = ["TCP"]
+      source_addresses      = concat(local.shared_vnet_address_space, local.spoke_vnet_address_space, local.spokedr_vnet_address_space)
+      destination_addresses = concat(local.shared_vnet_address_space, local.spoke_vnet_address_space, local.spokedr_vnet_address_space)
+      destination_ports     = ["3389"]
+    }
+
+    rule {
+      name                  = "AllowHTTPHTTPS"
+      protocols             = ["TCP"]
+      source_addresses      = concat(local.shared_vnet_address_space, local.spoke_vnet_address_space, local.spokedr_vnet_address_space, local.ml_vnet_address_space, local.avdvnet-address_space, local.onpremises_vnet_address_space)
+      destination_addresses = concat(local.shared_vnet_address_space, local.spoke_vnet_address_space, local.spokedr_vnet_address_space, local.ml_vnet_address_space, local.avdvnet-address_space)
+      destination_ports     = ["80", "443"]
+    }
+
+    rule {
+      name                  = "AllowAVDServiceTags"
+      protocols             = ["TCP"]
+      source_addresses      = local.avdvnet-address_space
+      destination_addresses = ["WindowsVirtualDesktop", "AzureMonitor", "AzureActiveDirectory", "AzureFrontDoor.Frontend", "Storage", "AzureCloud", "AzureFrontDoor.FirstParty"]
+      destination_ports     = ["80", "443"]
+    }
+
+    rule {
+      name                  = "AllowAVDServiceTags_UDP"
+      protocols             = ["UDP"]
+      source_addresses      = local.avdvnet-address_space
+      destination_addresses = ["WindowsVirtualDesktop"]
+      destination_ports     = ["3478"]
+    }
+
+    rule {
+      name                  = "AllowAVDServiceTags_KMS"
+      protocols             = ["TCP"]
+      source_addresses      = local.avdvnet-address_space
+      destination_addresses = ["Internet"]
+      destination_ports     = ["1688"]
+    }
+
+    rule {
+      name                  = "AllowICMP"
+      protocols             = ["ICMP"]
+      source_addresses      = ["*"]
+      destination_addresses = ["*"]
+      destination_ports     = ["*"]
+    }
+  }
+
+  application_rule_collection {
+    name     = "application-rules"
+    priority = 200
+    action   = "Allow"
+
+    rule {
+      name = "AllowInternet"
+      protocols {
+        type = "Http"
+        port = 80
+      }
+      protocols {
+        type = "Https"
+        port = 443
+      }
+      source_addresses  = concat(local.shared_vnet_address_space, local.spoke_vnet_address_space, local.spokedr_vnet_address_space, local.avdvnet-address_space, local.ml_vnet_address_space)
+      destination_fqdns = ["*"]
+    }
+  }
 }
 
 

@@ -57,7 +57,7 @@ resource "azurerm_virtual_desktop_host_pool" "avd-host_pool" {
   load_balancer_type       = "BreadthFirst"
   maximum_sessions_allowed = 2
   custom_rdp_properties    = "enablecredsspsupport:i:1;enablerdsaadauth:i:1;videoplaybackmode:i:1;audiomode:i:0;devicestoredirect:s:*;drivestoredirect:s:*;redirectclipboard:i:1;redirectcomports:i:1;redirectprinters:i:1;redirectsmartcards:i:1;redirectwebauthn:i:1;usbdevicestoredirect:s:*;use multimon:i:1; targetisaadjoined:i:1"
-  depends_on               = [azurerm_windows_virtual_machine.session_host]
+  depends_on               = [azurerm_windows_virtual_machine.session_host, azurerm_firewall_policy.firewall_policy]
   tags                     = local.common_tags
 }
 
@@ -148,7 +148,8 @@ PROTECTED_SETTINGS
 
   depends_on = [
     azurerm_virtual_machine_extension.aad_login,
-    azurerm_virtual_desktop_host_pool.avd-host_pool
+    azurerm_virtual_desktop_host_pool.avd-host_pool,
+    azurerm_firewall_policy_rule_collection_group.firewall_policy_rule_collection_group
   ]
   provider = azurerm.landingzoneavd
   tags     = local.common_tags
@@ -177,7 +178,7 @@ resource "azurerm_windows_virtual_machine" "session_host" {
   identity {
     type = "SystemAssigned"
   }
-  depends_on = [azurerm_network_interface.avd-host_pool-nic]
+  depends_on = [azurerm_network_interface.avd-host_pool-nic, azurerm_firewall_policy.firewall_policy]
   provider   = azurerm.landingzoneavd
   tags       = local.common_tags
 }
@@ -206,7 +207,7 @@ resource "azurerm_virtual_network_peering" "shared_to_avd" {
   remote_virtual_network_id    = azurerm_virtual_network.avd-vnet[0].id
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
-  allow_gateway_transit        = var.onpremises ? true : false
+  allow_gateway_transit        = var.onpremises || !local.enableaf ? true : false
   use_remote_gateways          = false
   provider                     = azurerm.connectivity
 }
@@ -220,7 +221,7 @@ resource "azurerm_virtual_network_peering" "avd_to_shared" {
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
   allow_gateway_transit        = false
-  use_remote_gateways          = var.onpremises ? true : false
+  use_remote_gateways          = var.onpremises || !local.enableaf ? true : false
   provider                     = azurerm.landingzoneavd
   depends_on                   = [azurerm_virtual_network_gateway.vpn_gateway]
 }

@@ -78,7 +78,7 @@ resource "azurerm_virtual_network_peering" "hub_to_ml" {
   remote_virtual_network_id    = azurerm_virtual_network.ml_vnet.id
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
-  allow_gateway_transit        = var.onpremises ? true : false
+  allow_gateway_transit        = var.onpremises || !local.enableaf ? true : false
   use_remote_gateways          = false
   provider                     = azurerm.connectivity
 }
@@ -92,7 +92,7 @@ resource "azurerm_virtual_network_peering" "ml_to_hub" {
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
   allow_gateway_transit        = false
-  use_remote_gateways          = var.onpremises ? true : false
+  use_remote_gateways          = var.onpremises || !local.enableaf ? true : false
   provider                     = azurerm.landingzonecorp
   depends_on                   = [azurerm_virtual_network_gateway.vpn_gateway]
 }
@@ -165,6 +165,8 @@ resource "azurerm_machine_learning_workspace" "ml_workspace" {
   identity {
     type = "SystemAssigned"
   }
+
+  depends_on = [azurerm_firewall_policy.firewall_policy]
 
   tags = local.common_tags
 }
@@ -369,6 +371,7 @@ resource "azurerm_machine_learning_compute_cluster" "ml_compute_cluster" {
   tags = local.common_tags
 
   depends_on = [
+    azurerm_firewall_policy_rule_collection_group.firewall_policy_rule_collection_group,
     azurerm_machine_learning_workspace.ml_workspace,
     azurerm_private_endpoint.ml_workspace_pe,
     azurerm_virtual_network.ml_vnet,
@@ -397,6 +400,7 @@ resource "azurerm_machine_learning_compute_instance" "ml_compute_instance" {
   tags = local.common_tags
 
   depends_on = [
+    azurerm_firewall_policy_rule_collection_group.firewall_policy_rule_collection_group,
     azurerm_machine_learning_workspace.ml_workspace,
     azurerm_private_endpoint.ml_workspace_pe,
     azurerm_virtual_network.ml_vnet,

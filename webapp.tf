@@ -61,7 +61,8 @@ resource "azurerm_windows_web_app" "web_app" {
   }
 
   site_config {
-    always_on = true
+    always_on              = true
+    vnet_route_all_enabled = true
   }
 
   app_settings = {
@@ -71,8 +72,12 @@ resource "azurerm_windows_web_app" "web_app" {
     DB_PASSWORD                         = azurerm_mssql_server.sql_server[0].administrator_login_password
     WEBSITE_RUN_FROM_PACKAGE            = azurerm_storage_blob.zip_file[0].url # Run directly from the blob
     WEBSITES_ENABLE_APP_SERVICE_STORAGE = "true"
+    ASPNETCORE_ENVIRONMENT              = "Development"
+    WEBSITE_DNS_SERVER                  = azurerm_private_dns_resolver_inbound_endpoint.private_dns_resolver_inbound_endpoint.ip_configurations[0].private_ip_address
   }
   tags = local.common_tags
+
+  depends_on = [azurerm_firewall_policy.firewall_policy]
 }
 
 resource "azurerm_app_service_virtual_network_swift_connection" "web_app" {

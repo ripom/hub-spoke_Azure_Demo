@@ -112,10 +112,12 @@ onpremises                          = false
 
 | Parameter | Type | Default | Description | Impact |
 |-----------|------|---------|-------------|--------|
-| `enableresource` | bool | `true` | Deploy PaaS resources | SQL, App Service, App Gateway, Front Door, Firewall, Storage |
+| `enableresource` | bool | `true` | Deploy PaaS resources | SQL, App Service, App Gateway, Front Door, Storage |
 | `enablevms` | bool | `true` | Deploy test VMs | VMs in hub, spokes, and Bastion hosts |
 | `avdenabled` | bool | `true` | Deploy AVD resources | Host pool, session hosts, workspace |
 | `onpremises` | bool | `true` | Deploy on-premises simulation | On-prem VNet, VPN gateways, DNS server VM |
+| `enableaf` | bool | `true` | Deploy Azure Firewall | Deploys Firewall, Route Tables, and enforces traffic filtering |
+| `enableatm` | bool | `false` | Deploy Traffic Manager | Global load balancing for web apps |
 
 #### Feature Flag Combinations
 
@@ -150,6 +152,24 @@ enablevms       = true
 avdenabled      = true
 onpremises      = true
 ```
+
+### Azure Firewall Configuration (`enableaf`)
+
+When `enableaf` is set to `true`, the following networking changes are applied:
+
+1.  **Azure Firewall Deployment**: An Azure Firewall (Standard SKU) is deployed in the Hub VNet.
+2.  **Route Tables**: Custom Route Tables (UDRs) are created and associated with all subnets in the Hub, Spoke, and Spoke DR VNets.
+3.  **Traffic Forwarding**:
+    *   **Inter-VNet Traffic**: All traffic between Hub, Spoke, and Spoke DR VNets is routed through the Azure Firewall.
+    *   **Internet Traffic**: All outbound traffic to the Internet (0.0.0.0/0) from all VNets is routed through the Azure Firewall.
+    *   **On-Premises Traffic**: Traffic destined for On-Premises networks is routed through the Azure Firewall.
+
+**Firewall Rules:**
+The following default rules are configured in the Firewall Policy:
+*   **DNS (UDP/TCP 53)**: Allowed from all VNets to the DNS Private Resolver Inbound Endpoint.
+*   **DNS Outbound (UDP/TCP 53)**: Allowed from the DNS Resolver Outbound Subnet to the On-Premises DNS Server.
+*   **RDP (TCP 3389)**: Allowed between all VNets (Hub, Spoke, Spoke DR) for management.
+*   **Web Traffic (HTTP/HTTPS)**: Allowed from all VNets to the Internet (`*`).
 
 ---
 

@@ -70,12 +70,14 @@ resource "azurerm_subnet_network_security_group_association" "frontend_nsg_assoc
   subnet_id                 = azurerm_subnet.frontend_subnet.id
   network_security_group_id = azurerm_network_security_group.frontend_nsg.id
   provider                  = azurerm.landingzonecorp
+  depends_on                = [azurerm_subnet_network_security_group_association.server_nsg_association]
 }
 
 resource "azurerm_subnet_network_security_group_association" "backend_nsg_association" {
   subnet_id                 = azurerm_subnet.backend_subnet.id
   network_security_group_id = azurerm_network_security_group.backend_nsg.id
   provider                  = azurerm.landingzonecorp
+  depends_on                = [azurerm_subnet_network_security_group_association.frontend_nsg_association]
 }
 resource "azurerm_subnet" "app_gateway_subnet" {
   provider             = azurerm.landingzonecorp
@@ -120,9 +122,10 @@ resource "azurerm_virtual_network_peering" "shared_to_spoke" {
   remote_virtual_network_id    = azurerm_virtual_network.spoke_vnet.id
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
-  allow_gateway_transit        = var.onpremises ? true : false
+  allow_gateway_transit        = var.onpremises || !local.enableaf ? true : false
   use_remote_gateways          = false
   provider                     = azurerm.connectivity
+  depends_on                   = [azurerm_subnet_network_security_group_association.app_gateway_nsg_association]
 }
 
 resource "azurerm_virtual_network_peering" "spoke_to_shared" {
@@ -133,7 +136,7 @@ resource "azurerm_virtual_network_peering" "spoke_to_shared" {
   allow_virtual_network_access = true
   allow_forwarded_traffic      = true
   allow_gateway_transit        = false
-  use_remote_gateways          = var.onpremises ? true : false
+  use_remote_gateways          = var.onpremises || !local.enableaf ? true : false
   provider                     = azurerm.landingzonecorp
 
   depends_on = [azurerm_virtual_network_gateway.vpn_gateway]
@@ -149,7 +152,8 @@ resource "azurerm_mssql_server" "sql_server" {
   administrator_login           = local.administrator_sql_login
   administrator_login_password  = local.administrator_sql_login_password
   minimum_tls_version           = "1.2"
-  public_network_access_enabled = "false"
+  public_network_access_enabled = false
+  connection_policy             = "Proxy"
 
   azuread_administrator {
     login_username              = "AzureAD Admin"
@@ -195,7 +199,8 @@ resource "azurerm_private_endpoint" "sql_private_endpoint" {
     private_connection_resource_id = azurerm_mssql_server.sql_server[0].id
     subresource_names              = ["sqlServer"]
   }
-  tags = local.common_tags
+  depends_on = [azurerm_firewall_policy.firewall_policy]
+  tags       = local.common_tags
 }
 
 # Create SpokeVM
@@ -359,7 +364,7 @@ resource "azurerm_network_security_group" "app_gateway_nsg" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "65200-65535" # Required for V2 SKU probes
-    source_address_prefix      = "*"
+    source_address_prefix      = "GatewayManager"
     destination_address_prefix = "*"
   }
   tags = local.common_tags
@@ -369,5 +374,6 @@ resource "azurerm_subnet_network_security_group_association" "app_gateway_nsg_as
   provider                  = azurerm.landingzonecorp
   subnet_id                 = azurerm_subnet.app_gateway_subnet.id
   network_security_group_id = azurerm_network_security_group.app_gateway_nsg.id
+  depends_on                = [azurerm_subnet_network_security_group_association.backend_nsg_association]
 }
 

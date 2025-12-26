@@ -4,11 +4,21 @@ This directory contains documentation for deploying Azure Machine Learning endpo
 
 ## 🚀 Create Endpoint
 
+### Bash
 ```bash
 az ml online-endpoint create \
   --name <YOUR_ENDPOINT_NAME> \
   --subscription <YOUR_SUBSCRIPTION_ID> \
   -g <YOUR_RESOURCE_GROUP> -w <YOUR_WORKSPACE_NAME> \
+  --auth-mode key
+```
+
+### PowerShell
+```powershell
+az ml online-endpoint create `
+  --name <YOUR_ENDPOINT_NAME> `
+  --subscription <YOUR_SUBSCRIPTION_ID> `
+  -g <YOUR_RESOURCE_GROUP> -w <YOUR_WORKSPACE_NAME> `
   --auth-mode key
 ```
 

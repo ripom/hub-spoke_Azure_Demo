@@ -17,7 +17,7 @@ The central connectivity hub that provides shared services and network transit:
 
 - **Virtual Network (Hub)** - Central connectivity point (10.0.0.0/16)
 - **DNS Private Resolver** - Hybrid DNS resolution with inbound and outbound endpoints (always deployed)
-- **Azure Firewall** (Optional - `enableresource=true`) - Network security and traffic inspection
+- **Azure Firewall** (Optional - `enableaf=true`) - Network security and traffic inspection. When enabled, all inter-VNet and Internet traffic is routed through the firewall via custom Route Tables.
 - **Azure Front Door** (Optional - `enableresource=true`) - Global load balancer for traffic management across regions
 - **VPN Gateway** (Optional - `onpremises=true`) - Hybrid connectivity to on-premises environments
 - **Windows VM** (Optional - `enablevms=true`) - Management and testing purposes
